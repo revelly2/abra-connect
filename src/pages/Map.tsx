@@ -28,6 +28,7 @@ const Map = () => {
   const [selectedSpot, setSelectedSpot] = useState<TouristSpot | null>(null);
   const [loading, setLoading] = useState(true);
   const [showingRoute, setShowingRoute] = useState(false);
+  const [showFullDetails, setShowFullDetails] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -142,6 +143,7 @@ const Map = () => {
 
       el.addEventListener('click', () => {
         setSelectedSpot(spot);
+        setShowFullDetails(false);
         map.current?.flyTo({
           center: [spot.longitude, spot.latitude],
           zoom: 14,
@@ -151,6 +153,17 @@ const Map = () => {
       markers.current.push(marker);
     });
   }, [spots]);
+
+  const handleViewDetails = () => {
+    if (!selectedSpot || !map.current) return;
+    
+    setShowFullDetails(true);
+    map.current.flyTo({
+      center: [selectedSpot.longitude, selectedSpot.latitude],
+      zoom: 16,
+      duration: 1500,
+    });
+  };
 
   const handleGetDirections = async () => {
     if (!selectedSpot || !userLocation || !map.current) return;
@@ -271,7 +284,10 @@ const Map = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedSpot(null)}
+                onClick={() => {
+                  setSelectedSpot(null);
+                  setShowFullDetails(false);
+                }}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -285,7 +301,7 @@ const Map = () => {
               />
             )}
 
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            <p className={`text-sm text-muted-foreground mb-3 ${showFullDetails ? '' : 'line-clamp-2'}`}>
               {selectedSpot.description}
             </p>
 
@@ -302,14 +318,25 @@ const Map = () => {
               </div>
             )}
 
-            <Button
-              onClick={handleGetDirections}
-              className="w-full"
-              disabled={!userLocation || showingRoute}
-            >
-              <Navigation className="w-4 h-4 mr-2" />
-              {showingRoute ? 'Showing Route' : 'Get Directions'}
-            </Button>
+            <div className="flex gap-2">
+              {!showFullDetails && (
+                <Button
+                  onClick={handleViewDetails}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  View Details
+                </Button>
+              )}
+              <Button
+                onClick={handleGetDirections}
+                className="flex-1"
+                disabled={!userLocation || showingRoute}
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                {showingRoute ? 'Showing Route' : 'Get Directions'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
