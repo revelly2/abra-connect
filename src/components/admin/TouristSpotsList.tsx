@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, MapPin, Tag } from "lucide-react";
+import { Trash2, MapPin, Tag, Eye } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TouristSpot {
   id: string;
@@ -136,27 +144,76 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                       </div>
                     )}
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Tourist Spot</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{spot.name}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(spot.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl">{spot.name}</DialogTitle>
+                          <DialogDescription className="flex items-center gap-2 text-base">
+                            <MapPin className="w-4 h-4" />
+                            {spot.location}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          {spot.image_url && (
+                            <img
+                              src={spot.image_url}
+                              alt={spot.name}
+                              className="w-full h-64 object-cover rounded-lg"
+                            />
+                          )}
+                          <div>
+                            <h3 className="font-semibold mb-2">Categories</h3>
+                            <div className="flex gap-2 flex-wrap">
+                              {spot.categories?.map((category) => (
+                                <span key={category} className="text-sm px-3 py-1 bg-primary/10 text-primary rounded-full">
+                                  {category}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold mb-2">Full History & Description</h3>
+                            <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                              {spot.description}
+                            </p>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold mb-2">Location Coordinates</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Latitude: {spot.latitude.toFixed(6)}, Longitude: {spot.longitude.toFixed(6)}
+                            </p>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Tourist Spot</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{spot.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(spot.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                   {spot.description}
