@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as maplibregl from 'maplibre-gl';
+import { Map, Marker, NavigationControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 interface LocationMapProps {
@@ -16,15 +16,15 @@ const LocationMap: React.FC<LocationMapProps> = ({
   height = "400px"
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
-  const marker = useRef<maplibregl.Marker | null>(null);
+  const map = useRef<Map | null>(null);
+  const marker = useRef<Marker | null>(null);
   const [currentLat, setCurrentLat] = useState(latitude);
   const [currentLng, setCurrentLng] = useState(longitude);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    map.current = new maplibregl.Map({
+    map.current = new Map({
       container: mapContainer.current,
       style: {
         version: 8,
@@ -49,10 +49,10 @@ const LocationMap: React.FC<LocationMapProps> = ({
       zoom: 12,
     });
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.current.addControl(new NavigationControl(), 'top-right');
 
     // Add initial marker
-    marker.current = new maplibregl.Marker({ draggable: true })
+    marker.current = new Marker({ draggable: true })
       .setLngLat([longitude, latitude])
       .addTo(map.current);
 
