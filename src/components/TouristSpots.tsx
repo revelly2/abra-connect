@@ -1,41 +1,61 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, QrCode } from "lucide-react";
-import kaparkanFalls from "@/assets/kaparkan-falls.jpg";
-import tangadanTunnel from "@/assets/tangadan-tunnel.jpg";
-import tayumChurch from "@/assets/tayum-church.jpg";
+import { MapPin, QrCode } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
-const spots = [
-  {
-    id: 1,
-    name: "Kaparkan Falls",
-    location: "Tineg, Abra",
-    description: "A majestic three-tiered waterfall surrounded by lush forest. The turquoise waters and scenic trek make it a must-visit natural wonder.",
-    image: kaparkanFalls,
-    duration: "3-4 hours trek",
-    type: "Natural Wonder"
-  },
-  {
-    id: 2,
-    name: "Tangadan Tunnel",
-    location: "Bangued, Abra",
-    description: "A historic Japanese tunnel built during World War II. Now a heritage site showcasing Abra's wartime history and resilience.",
-    image: tangadanTunnel,
-    duration: "30 minutes",
-    type: "Historical Landmark"
-  },
-  {
-    id: 3,
-    name: "Tayum Church",
-    location: "Tayum, Abra",
-    description: "A beautiful Spanish colonial church featuring baroque architecture. One of Abra's oldest religious landmarks dating back centuries.",
-    image: tayumChurch,
-    duration: "1 hour",
-    type: "Cultural Heritage"
-  }
-];
+interface TouristSpot {
+  id: string;
+  name: string;
+  location: string;
+  description: string;
+  image_url: string | null;
+  categories: string[];
+  latitude: number;
+  longitude: number;
+}
 
 const TouristSpots = () => {
+  const [spots, setSpots] = useState<TouristSpot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchSpots = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("tourist_spots")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(6);
+
+        if (error) throw error;
+        setSpots(data || []);
+      } catch (error) {
+        console.error("Error fetching tourist spots:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSpots();
+  }, []);
+
+  const handleViewAllDestinations = () => {
+    navigate("/map");
+  };
+
+  if (loading) {
+    return (
+      <section className="py-24 px-4 bg-gradient-to-b from-background to-card">
+        <div className="container mx-auto text-center">
+          <p className="text-muted-foreground">Loading destinations...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-background to-card">
       <div className="container mx-auto">
@@ -59,17 +79,25 @@ const TouristSpots = () => {
             >
               {/* Image Container */}
               <div className="relative h-64 overflow-hidden">
-                <img 
-                  src={spot.image} 
-                  alt={spot.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
+                {spot.image_url ? (
+                  <img 
+                    src={spot.image_url} 
+                    alt={spot.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <MapPin className="w-12 h-12 text-muted-foreground" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent opacity-60"></div>
                 
-                {/* Type Badge */}
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-medium">
-                  {spot.type}
-                </div>
+                {/* Category Badges */}
+                {spot.categories && spot.categories.length > 0 && (
+                  <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-medium">
+                    {spot.categories[0]}
+                  </div>
+                )}
 
                 {/* QR Code Icon */}
                 <div className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-accent/90 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -90,15 +118,20 @@ const TouristSpots = () => {
                 </div>
 
                 {/* Description */}
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed line-clamp-3">
                   {spot.description}
                 </p>
 
-                {/* Duration */}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t border-border">
-                  <Clock className="w-4 h-4" />
-                  <span>{spot.duration}</span>
-                </div>
+                {/* Categories */}
+                {spot.categories && spot.categories.length > 0 && (
+                  <div className="flex gap-2 flex-wrap pt-2 border-t border-border">
+                    {spot.categories.slice(0, 3).map((category) => (
+                      <span key={category} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* CTA Button */}
                 <Button variant="outline" className="w-full group-hover:border-primary group-hover:text-primary">
@@ -111,7 +144,7 @@ const TouristSpots = () => {
 
         {/* View All Button */}
         <div className="text-center mt-12">
-          <Button variant="hero" size="lg">
+          <Button variant="hero" size="lg" onClick={handleViewAllDestinations}>
             <MapPin className="w-5 h-5" />
             View All Destinations
           </Button>
