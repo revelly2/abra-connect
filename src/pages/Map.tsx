@@ -13,6 +13,7 @@ interface TouristSpot {
   name: string;
   location: string;
   description: string;
+  detailed_content?: string | null;
   image_url: string | null;
   categories: string[];
   latitude: number;
@@ -154,100 +155,8 @@ const Map = () => {
     });
   }, [spots]);
 
-  const handleViewDetails = async () => {
-    if (!selectedSpot || !userLocation || !map.current) return;
-    
-    setShowFullDetails(true);
-    setShowingRoute(true);
-
-    try {
-      // Fetch route from OSRM
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${selectedSpot.longitude},${selectedSpot.latitude}?overview=full&geometries=geojson`
-      );
-      const data = await response.json();
-
-      if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-        throw new Error('No route found');
-      }
-
-      const route = data.routes[0];
-      const coordinates = route.geometry.coordinates;
-
-      // Function to add route to map
-      const addRoute = () => {
-        if (!map.current) return;
-
-        // Remove existing route layer and source if they exist
-        if (map.current.getLayer('route')) {
-          map.current.removeLayer('route');
-        }
-        if (map.current.getSource('route')) {
-          map.current.removeSource('route');
-        }
-
-        // Add route as a line on the map
-        map.current.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: coordinates,
-            },
-          },
-        });
-
-        map.current.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
-          paint: {
-            'line-color': '#3b82f6',
-            'line-width': 6,
-            'line-opacity': 0.9,
-          },
-        });
-
-        // Fit map to show entire route
-        const bounds = coordinates.reduce(
-          (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
-            return bounds.extend(coord as [number, number]);
-          },
-          new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
-        );
-
-        map.current.fitBounds(bounds, {
-          padding: { top: 100, bottom: 400, left: 100, right: 100 },
-          duration: 1500,
-        });
-
-        toast({
-          title: 'Route displayed',
-          description: `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${Math.round(route.duration / 60)} min`,
-        });
-      };
-
-      // Check if map is loaded before adding route
-      if (map.current.loaded()) {
-        addRoute();
-      } else {
-        map.current.once('load', addRoute);
-      }
-    } catch (error) {
-      console.error('Error fetching route:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not calculate route. Please try again.',
-        variant: 'destructive',
-      });
-      setShowingRoute(false);
-    }
+  const handleViewDetails = () => {
+    setShowFullDetails(!showFullDetails);
   };
 
   const handleGetDirections = async () => {
@@ -359,12 +268,18 @@ const Map = () => {
 
       {/* Selected Spot Card */}
       {selectedSpot && (
-        <Card className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-10 shadow-lg">
+        <Card className={`absolute left-4 right-4 md:left-auto md:right-4 z-10 shadow-lg transition-all duration-300 ${
+          showFullDetails 
+            ? 'bottom-4 top-24 md:w-[500px] overflow-y-auto' 
+            : 'bottom-4 md:w-96'
+        }`}>
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-foreground">{selectedSpot.name}</h3>
-                <p className="text-sm text-muted-foreground">{selectedSpot.location}</p>
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <span>📍</span> {selectedSpot.location}
+                </p>
               </div>
               <Button
                 variant="ghost"
@@ -382,13 +297,37 @@ const Map = () => {
               <img
                 src={selectedSpot.image_url}
                 alt={selectedSpot.name}
-                className="w-full h-32 object-cover rounded-lg mb-3"
+                className={`w-full object-cover rounded-lg mb-3 transition-all duration-300 ${
+                  showFullDetails ? 'h-48' : 'h-32'
+                }`}
               />
             )}
 
-            <p className={`text-sm text-muted-foreground mb-3 ${showFullDetails ? '' : 'line-clamp-2'}`}>
-              {selectedSpot.description}
-            </p>
+            {!showFullDetails && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                {selectedSpot.description}
+              </p>
+            )}
+
+            {showFullDetails && (
+              <div className="space-y-4 mb-4 animate-fade-in">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">About</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {selectedSpot.description}
+                  </p>
+                </div>
+                
+                {selectedSpot.detailed_content && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Full History & Details</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                      {selectedSpot.detailed_content}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {selectedSpot.categories && selectedSpot.categories.length > 0 && (
               <div className="flex gap-2 mb-3 flex-wrap">
@@ -404,22 +343,20 @@ const Map = () => {
             )}
 
             <div className="flex gap-2">
-              {!showFullDetails && (
-                <Button
-                  onClick={handleViewDetails}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  View Details
-                </Button>
-              )}
+              <Button
+                onClick={handleViewDetails}
+                variant="outline"
+                className="flex-1"
+              >
+                {showFullDetails ? 'Show Less' : 'View Details'}
+              </Button>
               <Button
                 onClick={handleGetDirections}
                 className="flex-1"
                 disabled={!userLocation || showingRoute}
               >
                 <Navigation className="w-4 h-4 mr-2" />
-                {showingRoute ? 'Showing Route' : 'Get Directions'}
+                {showingRoute ? 'Route Shown' : 'Get Directions'}
               </Button>
             </div>
           </CardContent>
