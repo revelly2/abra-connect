@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, MapPin, Clock } from "lucide-react";
+import { Trash2, MapPin, Tag } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +22,7 @@ interface TouristSpot {
   location: string;
   description: string;
   image_url: string | null;
-  duration: string | null;
-  type: string | null;
+  categories: string[];
   latitude: number;
   longitude: number;
   created_at: string;
@@ -130,10 +129,10 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                       <MapPin className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate">{spot.location}</span>
                     </div>
-                    {spot.duration && (
+                    {spot.categories && spot.categories.length > 0 && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Clock className="w-4 h-4 flex-shrink-0" />
-                        <span>{spot.duration}</span>
+                        <Tag className="w-4 h-4 flex-shrink-0" />
+                        <span>{spot.categories.join(", ")}</span>
                       </div>
                     )}
                   </div>
@@ -162,12 +161,12 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                   {spot.description}
                 </p>
-                <div className="flex gap-2 mt-2">
-                  {spot.type && (
-                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                      {spot.type}
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {spot.categories?.map((category) => (
+                    <span key={category} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                      {category}
                     </span>
-                  )}
+                  ))}
                   <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
                     {spot.latitude.toFixed(4)}, {spot.longitude.toFixed(4)}
                   </span>
