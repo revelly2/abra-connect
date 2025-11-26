@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Shield, LogOut, MapPin, Languages, Landmark } from "lucide-react";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TouristSpotForm from "@/components/admin/TouristSpotForm";
+import TouristSpotsList from "@/components/admin/TouristSpotsList";
 
 const emailSchema = z.string().email("Invalid email address").max(255, "Email must be less than 255 characters");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(100, "Password must be less than 100 characters");
@@ -20,6 +22,7 @@ const Admin = () => {
   const [loginPassword, setLoginPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [refreshSpots, setRefreshSpots] = useState(0);
 
   const validateLogin = () => {
     const newErrors: { [key: string]: string } = {};
@@ -105,21 +108,9 @@ const Admin = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="spots" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Manage Tourist Spots</CardTitle>
-                  <CardDescription>
-                    Add, edit, or remove tourist destinations in Abra
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12 text-muted-foreground">
-                    <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Tourist spots management coming soon</p>
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="spots" className="mt-6 space-y-6">
+              <TouristSpotForm onSuccess={() => setRefreshSpots(prev => prev + 1)} />
+              <TouristSpotsList refresh={refreshSpots} />
             </TabsContent>
 
             <TabsContent value="culture" className="mt-6">
