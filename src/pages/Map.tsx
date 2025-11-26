@@ -154,15 +154,87 @@ const Map = () => {
     });
   }, [spots]);
 
-  const handleViewDetails = () => {
-    if (!selectedSpot || !map.current) return;
+  const handleViewDetails = async () => {
+    if (!selectedSpot || !userLocation || !map.current) return;
     
     setShowFullDetails(true);
-    map.current.flyTo({
-      center: [selectedSpot.longitude, selectedSpot.latitude],
-      zoom: 16,
-      duration: 1500,
-    });
+    setShowingRoute(true);
+
+    try {
+      // Fetch route from OSRM
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${selectedSpot.longitude},${selectedSpot.latitude}?overview=full&geometries=geojson`
+      );
+      const data = await response.json();
+
+      if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+        throw new Error('No route found');
+      }
+
+      const route = data.routes[0];
+      const coordinates = route.geometry.coordinates;
+
+      // Remove existing route layer and source if they exist
+      if (map.current.getLayer('route')) {
+        map.current.removeLayer('route');
+      }
+      if (map.current.getSource('route')) {
+        map.current.removeSource('route');
+      }
+
+      // Add route as a line on the map
+      map.current.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: coordinates,
+          },
+        },
+      });
+
+      map.current.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 4,
+          'line-opacity': 0.8,
+        },
+      });
+
+      // Fit map to show entire route
+      const bounds = coordinates.reduce(
+        (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
+          return bounds.extend(coord as [number, number]);
+        },
+        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+      );
+
+      map.current.fitBounds(bounds, {
+        padding: { top: 100, bottom: 400, left: 100, right: 100 },
+      });
+
+      toast({
+        title: 'Route displayed',
+        description: `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${Math.round(route.duration / 60)} min`,
+      });
+    } catch (error) {
+      console.error('Error fetching route:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not calculate route. Please try again.',
+        variant: 'destructive',
+      });
+      setShowingRoute(false);
+    }
   };
 
   const handleGetDirections = async () => {
