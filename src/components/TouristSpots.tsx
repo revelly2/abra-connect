@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ interface TouristSpot {
   name: string;
   location: string;
   description: string;
+  detailed_content?: string | null;
   image_url: string | null;
   categories: string[];
   latitude: number;
@@ -19,6 +21,7 @@ interface TouristSpot {
 const TouristSpots = () => {
   const [spots, setSpots] = useState<TouristSpot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSpot, setSelectedSpot] = useState<TouristSpot | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -134,7 +137,11 @@ const TouristSpots = () => {
                 )}
 
                 {/* CTA Button */}
-                <Button variant="outline" className="w-full group-hover:border-primary group-hover:text-primary">
+                <Button 
+                  variant="outline" 
+                  className="w-full group-hover:border-primary group-hover:text-primary"
+                  onClick={() => setSelectedSpot(spot)}
+                >
                   View Details
                 </Button>
               </CardContent>
@@ -150,6 +157,96 @@ const TouristSpots = () => {
           </Button>
         </div>
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedSpot} onOpenChange={(open) => !open && setSelectedSpot(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {selectedSpot && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-foreground">
+                  {selectedSpot.name}
+                </DialogTitle>
+                <div className="flex items-center gap-2 text-muted-foreground text-sm pt-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>{selectedSpot.location}</span>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 animate-fade-in">
+                {/* Image */}
+                {selectedSpot.image_url && (
+                  <div className="relative h-64 md:h-80 rounded-lg overflow-hidden">
+                    <img
+                      src={selectedSpot.image_url}
+                      alt={selectedSpot.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-accent/90 backdrop-blur-sm flex items-center justify-center">
+                      <QrCode className="w-6 h-6 text-accent-foreground" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Categories */}
+                {selectedSpot.categories && selectedSpot.categories.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedSpot.categories.map((category) => (
+                      <span
+                        key={category}
+                        className="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full"
+                      >
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">About</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {selectedSpot.description}
+                  </p>
+                </div>
+
+                {/* Detailed Content */}
+                {selectedSpot.detailed_content && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-2">
+                      Full History & Details
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                      {selectedSpot.detailed_content}
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-border">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setSelectedSpot(null)}
+                  >
+                    Close
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      setSelectedSpot(null);
+                      navigate("/map");
+                    }}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    View on Map
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
