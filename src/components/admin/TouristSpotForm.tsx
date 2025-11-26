@@ -18,6 +18,7 @@ const spotSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   location: z.string().min(1, "Location is required").max(200),
   description: z.string().min(1, "Description is required").max(1000),
+  detailed_content: z.string().optional(),
   categories: z.array(z.string()).min(1, "Select at least one category"),
   latitude: z.number(),
   longitude: z.number(),
@@ -97,6 +98,7 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
           name: data.name,
           location: data.location,
           description: data.description,
+          detailed_content: data.detailed_content,
           image_url: imageUrl,
           categories: data.categories,
           latitude: data.latitude,
@@ -177,10 +179,24 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
-            <Textarea id="description" rows={3} {...register("description")} />
+            <Label htmlFor="description">Short Description *</Label>
+            <Textarea id="description" rows={3} placeholder="Brief overview for the card" {...register("description")} />
             {errors.description && (
               <p className="text-sm text-destructive">{errors.description.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="detailed_content">Full History / Detailed Content</Label>
+            <Textarea 
+              id="detailed_content" 
+              rows={8} 
+              placeholder="Complete history, detailed information, and interesting facts that will be shown in 'View Details'"
+              {...register("detailed_content")} 
+            />
+            <p className="text-sm text-muted-foreground">This content will appear when users click "View Details"</p>
+            {errors.detailed_content && (
+              <p className="text-sm text-destructive">{errors.detailed_content.message}</p>
             )}
           </div>
 

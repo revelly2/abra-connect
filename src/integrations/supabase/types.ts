@@ -43,6 +43,7 @@ export type Database = {
           categories: string[] | null
           created_at: string
           description: string
+          detailed_content: string | null
           id: string
           image_url: string | null
           latitude: number
@@ -55,6 +56,7 @@ export type Database = {
           categories?: string[] | null
           created_at?: string
           description: string
+          detailed_content?: string | null
           id?: string
           image_url?: string | null
           latitude: number
@@ -67,6 +69,7 @@ export type Database = {
           categories?: string[] | null
           created_at?: string
           description?: string
+          detailed_content?: string | null
           id?: string
           image_url?: string | null
           latitude?: number
