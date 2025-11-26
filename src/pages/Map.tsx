@@ -174,58 +174,71 @@ const Map = () => {
       const route = data.routes[0];
       const coordinates = route.geometry.coordinates;
 
-      // Remove existing route layer and source if they exist
-      if (map.current.getLayer('route')) {
-        map.current.removeLayer('route');
-      }
-      if (map.current.getSource('route')) {
-        map.current.removeSource('route');
-      }
+      // Function to add route to map
+      const addRoute = () => {
+        if (!map.current) return;
 
-      // Add route as a line on the map
-      map.current.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: coordinates,
+        // Remove existing route layer and source if they exist
+        if (map.current.getLayer('route')) {
+          map.current.removeLayer('route');
+        }
+        if (map.current.getSource('route')) {
+          map.current.removeSource('route');
+        }
+
+        // Add route as a line on the map
+        map.current.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: coordinates,
+            },
           },
-        },
-      });
+        });
 
-      map.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#3b82f6',
-          'line-width': 4,
-          'line-opacity': 0.8,
-        },
-      });
+        map.current.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 6,
+            'line-opacity': 0.9,
+          },
+        });
 
-      // Fit map to show entire route
-      const bounds = coordinates.reduce(
-        (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
-          return bounds.extend(coord as [number, number]);
-        },
-        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
-      );
+        // Fit map to show entire route
+        const bounds = coordinates.reduce(
+          (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
+            return bounds.extend(coord as [number, number]);
+          },
+          new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+        );
 
-      map.current.fitBounds(bounds, {
-        padding: { top: 100, bottom: 400, left: 100, right: 100 },
-      });
+        map.current.fitBounds(bounds, {
+          padding: { top: 100, bottom: 400, left: 100, right: 100 },
+          duration: 1500,
+        });
 
-      toast({
-        title: 'Route displayed',
-        description: `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${Math.round(route.duration / 60)} min`,
-      });
+        toast({
+          title: 'Route displayed',
+          description: `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${Math.round(route.duration / 60)} min`,
+        });
+      };
+
+      // Check if map is loaded before adding route
+      if (map.current.loaded()) {
+        addRoute();
+      } else {
+        map.current.once('load', addRoute);
+      }
     } catch (error) {
       console.error('Error fetching route:', error);
       toast({
