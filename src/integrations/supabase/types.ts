@@ -40,42 +40,39 @@ export type Database = {
       }
       tourist_spots: {
         Row: {
+          categories: string[] | null
           created_at: string
           description: string
-          duration: string | null
           id: string
           image_url: string | null
           latitude: number
           location: string
           longitude: number
           name: string
-          type: string | null
           updated_at: string
         }
         Insert: {
+          categories?: string[] | null
           created_at?: string
           description: string
-          duration?: string | null
           id?: string
           image_url?: string | null
           latitude: number
           location: string
           longitude: number
           name: string
-          type?: string | null
           updated_at?: string
         }
         Update: {
+          categories?: string[] | null
           created_at?: string
           description?: string
-          duration?: string | null
           id?: string
           image_url?: string | null
           latitude?: number
           location?: string
           longitude?: number
           name?: string
-          type?: string | null
           updated_at?: string
         }
         Relationships: []

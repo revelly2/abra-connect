@@ -12,13 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import LocationMap from "./LocationMap";
 import { Loader2 } from "lucide-react";
 
+const CATEGORIES = ["Historical", "Nature", "Heritage", "Rivers", "Mountain"] as const;
+
 const spotSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   location: z.string().min(1, "Location is required").max(200),
   description: z.string().min(1, "Description is required").max(1000),
-  image_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  duration: z.string().max(100).optional(),
-  type: z.string().max(100).optional(),
+  categories: z.array(z.string()).min(1, "Select at least one category"),
   latitude: z.number(),
   longitude: z.number(),
 });
@@ -34,6 +34,8 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
   const [loading, setLoading] = useState(false);
   const [latitude, setLatitude] = useState(17.5947);
   const [longitude, setLongitude] = useState(120.7913);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const {
     register,
@@ -46,6 +48,7 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
     defaultValues: {
       latitude: 17.5947,
       longitude: 120.7913,
+      categories: [],
     },
   });
 
@@ -56,17 +59,46 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
     setValue("longitude", lng);
   };
 
+  const handleCategoryToggle = (category: string) => {
+    const updated = selectedCategories.includes(category)
+      ? selectedCategories.filter(c => c !== category)
+      : [...selectedCategories, category];
+    setSelectedCategories(updated);
+    setValue("categories", updated);
+  };
+
   const onSubmit = async (data: SpotFormData) => {
     setLoading(true);
     try {
+      let imageUrl = null;
+
+      // Upload image if selected
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('tourist-spots')
+          .upload(filePath, selectedFile);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('tourist-spots')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+      }
+
       const { error } = await supabase.from("tourist_spots").insert([
         {
           name: data.name,
           location: data.location,
           description: data.description,
-          image_url: data.image_url || null,
-          duration: data.duration || null,
-          type: data.type || null,
+          image_url: imageUrl,
+          categories: data.categories,
           latitude: data.latitude,
           longitude: data.longitude,
         },
@@ -81,6 +113,8 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
       reset();
       setLatitude(17.5947);
       setLongitude(120.7913);
+      setSelectedFile(null);
+      setSelectedCategories([]);
       onSuccess?.();
     } catch (error: any) {
       toast({
@@ -117,22 +151,29 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
                 <p className="text-sm text-destructive">{errors.location.message}</p>
               )}
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="type">Type</Label>
-              <Input id="type" placeholder="e.g., Natural, Historical" {...register("type")} />
-              {errors.type && (
-                <p className="text-sm text-destructive">{errors.type.message}</p>
-              )}
+          <div className="space-y-2">
+            <Label>Categories *</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {CATEGORIES.map((category) => (
+                <div key={category} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={category}
+                    checked={selectedCategories.includes(category)}
+                    onChange={() => handleCategoryToggle(category)}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <Label htmlFor={category} className="cursor-pointer font-normal">
+                    {category}
+                  </Label>
+                </div>
+              ))}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="duration">Duration</Label>
-              <Input id="duration" placeholder="e.g., 2-3 hours" {...register("duration")} />
-              {errors.duration && (
-                <p className="text-sm text-destructive">{errors.duration.message}</p>
-              )}
-            </div>
+            {errors.categories && (
+              <p className="text-sm text-destructive">{errors.categories.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -144,10 +185,15 @@ const TouristSpotForm = ({ onSuccess }: TouristSpotFormProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
-            <Input id="image_url" type="url" placeholder="https://..." {...register("image_url")} />
-            {errors.image_url && (
-              <p className="text-sm text-destructive">{errors.image_url.message}</p>
+            <Label htmlFor="image">Image *</Label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+            />
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>
             )}
           </div>
 
