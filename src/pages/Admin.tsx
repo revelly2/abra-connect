@@ -53,9 +53,7 @@ const Admin = () => {
     const { error } = await signIn(loginEmail, loginPassword);
     setLoading(false);
     
-    if (!error) {
-      navigate("/");
-    }
+    // No need to navigate - component will re-render and show dashboard
   };
 
 
