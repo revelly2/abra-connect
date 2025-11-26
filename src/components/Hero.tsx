@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { QrCode, MapPin, Sparkles } from "lucide-react";
-import heroImage from "@/assets/hero-abra.jpg";
+import heroImage from "@/assets/abra-mountains.jpg";
 
 const Hero = () => {
   return (
@@ -9,7 +9,7 @@ const Hero = () => {
       <div className="absolute inset-0 z-0">
         <img 
           src={heroImage} 
-          alt="Abra Province Mountains" 
+          alt="Scenic mountains of Abra Province at sunset with rolling hills" 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background"></div>
