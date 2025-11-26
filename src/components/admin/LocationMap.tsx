@@ -26,7 +26,25 @@ const LocationMap: React.FC<LocationMapProps> = ({
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '&copy; OpenStreetMap Contributors',
+            maxzoom: 19
+          }
+        },
+        layers: [
+          {
+            id: 'osm',
+            type: 'raster',
+            source: 'osm'
+          }
+        ]
+      },
       center: [longitude, latitude],
       zoom: 12,
     });
