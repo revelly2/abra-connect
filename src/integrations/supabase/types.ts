@@ -38,6 +38,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tourist_spots: {
+        Row: {
+          created_at: string
+          description: string
+          duration: string | null
+          id: string
+          image_url: string | null
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          duration?: string | null
+          id?: string
+          image_url?: string | null
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration?: string | null
+          id?: string
+          image_url?: string | null
+          latitude?: number
+          location?: string
+          longitude?: number
+          name?: string
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
