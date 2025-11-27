@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, MapPin, Tag, Eye, Pencil, QrCode, Download } from "lucide-react";
+import { Trash2, MapPin, Tag, Eye, Pencil, QrCode, Download, Globe } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,11 +50,20 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
   const [loading, setLoading] = useState(true);
   const [editingSpot, setEditingSpot] = useState<TouristSpot | null>(null);
   const [qrSpot, setQrSpot] = useState<TouristSpot | null>(null);
+  const [baseUrl, setBaseUrl] = useState<string>(() => {
+    return localStorage.getItem("qr_base_url") || window.location.origin;
+  });
   const qrRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const handleBaseUrlChange = (url: string) => {
+    const cleanUrl = url.replace(/\/$/, ""); // Remove trailing slash
+    setBaseUrl(cleanUrl);
+    localStorage.setItem("qr_base_url", cleanUrl);
+  };
+
   const getSpotUrl = (spotId: string) => {
-    return `${window.location.origin}/spot/${spotId}`;
+    return `${baseUrl}/spot/${spotId}`;
   };
 
   const handleDownloadQR = (spotName: string) => {
@@ -191,25 +202,47 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                           <QrCode className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-sm">
+                      <DialogContent className="max-w-md">
                         <DialogHeader>
                           <DialogTitle>QR Code for {spot.name}</DialogTitle>
                           <DialogDescription>
                             Scan this code to visit the spot's landing page
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="flex flex-col items-center space-y-4 py-4">
-                          <div ref={qrRef} className="bg-white p-4 rounded-lg">
-                            <QRCodeSVG
-                              value={getSpotUrl(spot.id)}
-                              size={200}
-                              level="H"
-                              includeMargin
+                        <div className="flex flex-col space-y-4 py-4">
+                          {/* Base URL Setting */}
+                          <div className="space-y-2">
+                            <Label htmlFor="base-url" className="flex items-center gap-2 text-sm">
+                              <Globe className="w-4 h-4" />
+                              Website Base URL
+                            </Label>
+                            <Input
+                              id="base-url"
+                              placeholder="https://your-domain.com"
+                              value={baseUrl}
+                              onChange={(e) => handleBaseUrlChange(e.target.value)}
+                              className="text-sm"
                             />
+                            <p className="text-xs text-muted-foreground">
+                              Set your custom domain so QR codes point to your hosted site
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground text-center break-all max-w-full">
-                            {getSpotUrl(spot.id)}
-                          </p>
+                          
+                          {/* QR Code Display */}
+                          <div className="flex flex-col items-center space-y-3">
+                            <div ref={qrRef} className="bg-white p-4 rounded-lg">
+                              <QRCodeSVG
+                                value={getSpotUrl(spot.id)}
+                                size={180}
+                                level="H"
+                                includeMargin
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground text-center break-all max-w-full px-2">
+                              {getSpotUrl(spot.id)}
+                            </p>
+                          </div>
+                          
                           <Button onClick={() => handleDownloadQR(spot.name)} className="w-full">
                             <Download className="w-4 h-4 mr-2" />
                             Download QR Code
