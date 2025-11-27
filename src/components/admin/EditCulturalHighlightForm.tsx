@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, X, Plus, ImageIcon } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -31,6 +31,7 @@ interface EditCulturalHighlightFormProps {
     icon_name: string;
     image_url: string | null;
     display_order: number;
+    content_images: string[] | null;
   };
   onSuccess: () => void;
   onCancel: () => void;
@@ -47,6 +48,8 @@ const EditCulturalHighlightForm = ({ highlight, onSuccess, onCancel }: EditCultu
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(highlight.image_url);
+  const [contentImages, setContentImages] = useState<string[]>(highlight.content_images || []);
+  const [uploadingContentImage, setUploadingContentImage] = useState(false);
 
   const {
     register,
@@ -80,9 +83,9 @@ const EditCulturalHighlightForm = ({ highlight, onSuccess, onCancel }: EditCultu
     }
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImage = async (file: File, prefix: string = "cultural"): Promise<string | null> => {
     const fileExt = file.name.split(".").pop();
-    const fileName = `cultural-${highlight.id}-${Date.now()}.${fileExt}`;
+    const fileName = `${prefix}-${highlight.id}-${Date.now()}.${fileExt}`;
     const filePath = `cultural/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
@@ -96,6 +99,27 @@ const EditCulturalHighlightForm = ({ highlight, onSuccess, onCancel }: EditCultu
 
     const { data } = supabase.storage.from("tourist-spots").getPublicUrl(filePath);
     return data.publicUrl;
+  };
+
+  const handleContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingContentImage(true);
+    const uploadedUrl = await uploadImage(file, "content");
+    setUploadingContentImage(false);
+
+    if (uploadedUrl) {
+      setContentImages([...contentImages, uploadedUrl]);
+      toast.success("Content image added");
+    }
+    
+    // Reset the input
+    e.target.value = "";
+  };
+
+  const removeContentImage = (index: number) => {
+    setContentImages(contentImages.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (data: FormData) => {
@@ -119,6 +143,7 @@ const EditCulturalHighlightForm = ({ highlight, onSuccess, onCancel }: EditCultu
         icon_name: data.icon_name,
         image_url: imageUrl,
         display_order: data.display_order,
+        content_images: contentImages,
       })
       .eq("id", highlight.id);
 
@@ -191,13 +216,55 @@ const EditCulturalHighlightForm = ({ highlight, onSuccess, onCancel }: EditCultu
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="image">Image</Label>
+        <Label htmlFor="image">Card Image (Thumbnail)</Label>
         <Input id="image" type="file" accept="image/*" onChange={handleImageChange} />
         {imagePreview && (
           <div className="mt-2">
             <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-md" />
           </div>
         )}
+      </div>
+
+      {/* Content Images Section */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" />
+          Content Images (shown in popup)
+        </Label>
+        <p className="text-xs text-muted-foreground">Add multiple images to display within the detailed content</p>
+        
+        {contentImages.length > 0 && (
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {contentImages.map((url, index) => (
+              <div key={index} className="relative group">
+                <img
+                  src={url}
+                  alt={`Content ${index + 1}`}
+                  className="w-full h-20 object-cover rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeContentImage(index)}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2">
+          <Input
+            id="content-image"
+            type="file"
+            accept="image/*"
+            onChange={handleContentImageUpload}
+            disabled={uploadingContentImage}
+            className="flex-1"
+          />
+          {uploadingContentImage && <Loader2 className="w-4 h-4 animate-spin" />}
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

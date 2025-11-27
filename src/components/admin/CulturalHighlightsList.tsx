@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Eye, Pencil, Trash2, Landmark, Users, Palette, Music } from "lucide-react";
+import { Eye, Pencil, Trash2, Landmark, Users, Palette, Music, FileText, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import EditCulturalHighlightForm from "./EditCulturalHighlightForm";
 
@@ -15,6 +15,7 @@ interface CulturalHighlight {
   icon_name: string;
   image_url: string | null;
   display_order: number;
+  content_images: string[] | null;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -35,6 +36,7 @@ const CulturalHighlightsList = ({ refresh }: CulturalHighlightsListProps) => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contentDialogOpen, setContentDialogOpen] = useState(false);
 
   const fetchHighlights = async () => {
     setLoading(true);
@@ -108,18 +110,23 @@ const CulturalHighlightsList = ({ refresh }: CulturalHighlightsListProps) => {
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                         {highlight.description}
                       </p>
-                      {highlight.image_url && (
-                        <div className="mt-2">
-                          <img
-                            src={highlight.image_url}
-                            alt={highlight.title}
-                            className="w-full h-24 object-cover rounded-md"
-                          />
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        {highlight.detailed_content && (
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            Has content
+                          </span>
+                        )}
+                        {highlight.content_images && highlight.content_images.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3" />
+                            {highlight.content_images.length} images
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-4 pt-4 border-t border-border">
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
                     <Button
                       variant="outline"
                       size="sm"
@@ -130,6 +137,17 @@ const CulturalHighlightsList = ({ refresh }: CulturalHighlightsListProps) => {
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedHighlight(highlight);
+                        setContentDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Content
                     </Button>
                     <Button
                       variant="outline"
@@ -190,6 +208,83 @@ const CulturalHighlightsList = ({ refresh }: CulturalHighlightsListProps) => {
                 <p className="text-muted-foreground whitespace-pre-wrap">
                   {selectedHighlight.detailed_content}
                 </p>
+              </div>
+            )}
+            {selectedHighlight?.content_images && selectedHighlight.content_images.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-foreground mb-2">Content Images ({selectedHighlight.content_images.length})</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedHighlight.content_images.map((url, index) => (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`Content ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Content Preview Dialog */}
+      <Dialog open={contentDialogOpen} onOpenChange={setContentDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-primary" />
+              Content Preview: {selectedHighlight?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This is how the content will appear when users click on this cultural highlight.
+            </p>
+            
+            {selectedHighlight?.image_url && (
+              <img
+                src={selectedHighlight.image_url}
+                alt={selectedHighlight.title}
+                className="w-full h-56 object-cover rounded-lg"
+              />
+            )}
+            
+            <div className="prose prose-sm max-w-none">
+              <h3 className="text-lg font-semibold text-foreground">{selectedHighlight?.title}</h3>
+              <p className="text-muted-foreground">{selectedHighlight?.description}</p>
+            </div>
+            
+            {selectedHighlight?.detailed_content && (
+              <div className="bg-secondary/30 rounded-lg p-4">
+                <p className="text-foreground whitespace-pre-wrap">
+                  {selectedHighlight.detailed_content}
+                </p>
+              </div>
+            )}
+            
+            {selectedHighlight?.content_images && selectedHighlight.content_images.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-foreground">Gallery</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedHighlight.content_images.map((url, index) => (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`${selectedHighlight.title} - Image ${index + 1}`}
+                      className="w-full h-40 object-cover rounded-lg"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {!selectedHighlight?.detailed_content && (!selectedHighlight?.content_images || selectedHighlight.content_images.length === 0) && (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No detailed content or images added yet.</p>
+                <p className="text-sm">Click "Edit" to add content and images.</p>
               </div>
             )}
           </div>
