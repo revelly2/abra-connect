@@ -18,31 +18,32 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are an expert travel planner specializing in Abra, Philippines. You create personalized travel itineraries based on user preferences. 
+    const systemPrompt = `You are an expert travel planner specializing in Abra, Philippines. Create personalized, structured travel itineraries.
 
-Your itineraries should:
-- Be specific to Abra province and its tourist attractions
-- Include local food recommendations
-- Suggest accommodation options based on budget
-- Include transportation tips
-- Be realistic and practical
-- Include cultural experiences and local traditions
-- Format the response in a clear, day-by-day structure with times
+IMPORTANT: You must respond using the generate_itinerary function to return a properly structured itinerary.
 
-Always be enthusiastic and highlight the unique beauty of Abra!`;
+Key tourist spots in Abra to include when relevant:
+- Kaparkan Falls (Mulawin Falls) - terraced waterfall, Heritage Site
+- Tayum Church - historical church built in 1803
+- Tangadan Tunnel - scenic mountain tunnel
+- Bangued Town Plaza - central plaza
+- Abra River - for river activities
+- Victoria Park - nature park
+- Calaba Beach - riverside beach
 
-    const userPrompt = `Create a personalized travel itinerary for Abra, Philippines with these preferences:
+Always include realistic times, durations, and helpful tips for each activity.`;
 
+    const userPrompt = `Create a travel itinerary for Abra, Philippines with these preferences:
 - Gender: ${gender || 'Not specified'}
 - Age: ${age || 'Not specified'}
-- Traveler's Location: ${location || 'Not specified'}
+- Location: ${location || 'Not specified'}
 - Interests: ${interests?.length ? interests.join(', ') : 'General tourism'}
-- Duration: ${duration || 'Not specified'}
-- Travel Style: ${travelStyle || 'Not specified'}
-- Traveling With: ${groupType || 'Not specified'}
-- Budget: ${budget || 'Not specified'}
+- Duration: ${duration || '2-3 days'}
+- Travel Style: ${travelStyle || 'Adventure'}
+- Traveling With: ${groupType || 'Solo'}
+- Budget: ${budget || 'Moderate'}
 
-Please create a detailed day-by-day itinerary that matches these preferences. Include specific places to visit, best times to go, local food to try, and practical tips.`;
+Create a detailed day-by-day itinerary matching these preferences.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -56,7 +57,57 @@ Please create a detailed day-by-day itinerary that matches these preferences. In
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        stream: true,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "generate_itinerary",
+              description: "Generate a structured travel itinerary",
+              parameters: {
+                type: "object",
+                properties: {
+                  title: { type: "string", description: "Overall itinerary title" },
+                  days: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        dayNumber: { type: "number" },
+                        title: { type: "string", description: "Day theme/title" },
+                        activities: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              name: { type: "string", description: "Activity or place name" },
+                              category: { type: "string", enum: ["Activity", "Heritage Site", "Food & Dining", "Nature", "Transportation", "Accommodation"] },
+                              description: { type: "string" },
+                              time: { type: "string", description: "Start time e.g. 8:00 AM" },
+                              duration: { type: "string", description: "e.g. 2 hours" },
+                              tips: { type: "string", description: "Helpful tips or notes" },
+                              isTouristSpot: { type: "boolean", description: "True if this is a notable tourist spot" },
+                              spotName: { type: "string", description: "Exact tourist spot name if isTouristSpot is true" }
+                            },
+                            required: ["name", "category", "description", "time", "duration"]
+                          }
+                        }
+                      },
+                      required: ["dayNumber", "title", "activities"]
+                    }
+                  },
+                  travelNotes: { type: "string", description: "General travel notes about transportation and logistics" },
+                  travelTips: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "List of helpful travel tips"
+                  }
+                },
+                required: ["title", "days", "travelTips"]
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "generate_itinerary" } }
       }),
     });
 
@@ -81,8 +132,22 @@ Please create a detailed day-by-day itinerary that matches these preferences. In
       });
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    const data = await response.json();
+    console.log("AI Response:", JSON.stringify(data, null, 2));
+
+    // Extract the tool call result
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const itinerary = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ itinerary }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fallback if no tool call
+    return new Response(JSON.stringify({ error: "Failed to generate structured itinerary" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error generating itinerary:", error);
