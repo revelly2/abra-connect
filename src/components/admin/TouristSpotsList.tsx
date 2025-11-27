@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, MapPin, Tag, Eye } from "lucide-react";
+import { Trash2, MapPin, Tag, Eye, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,12 +23,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import EditTouristSpotForm from "./EditTouristSpotForm";
 
 interface TouristSpot {
   id: string;
   name: string;
   location: string;
   description: string;
+  detailed_content?: string | null;
   image_url: string | null;
   categories: string[];
   latitude: number;
@@ -43,6 +45,7 @@ interface TouristSpotsListProps {
 const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
   const [spots, setSpots] = useState<TouristSpot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingSpot, setEditingSpot] = useState<TouristSpot | null>(null);
   const { toast } = useToast();
 
   const fetchSpots = async () => {
@@ -178,11 +181,19 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                             </div>
                           </div>
                           <div>
-                            <h3 className="font-semibold mb-2">Full History & Description</h3>
+                            <h3 className="font-semibold mb-2">Short Description</h3>
                             <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
                               {spot.description}
                             </p>
                           </div>
+                          {spot.detailed_content && (
+                            <div>
+                              <h3 className="font-semibold mb-2">Full History & Details</h3>
+                              <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                                {spot.detailed_content}
+                              </p>
+                            </div>
+                          )}
                           <div>
                             <h3 className="font-semibold mb-2">Location Coordinates</h3>
                             <p className="text-sm text-muted-foreground">
@@ -190,6 +201,31 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                             </p>
                           </div>
                         </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog open={editingSpot?.id === spot.id} onOpenChange={(open) => !open && setEditingSpot(null)}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={() => setEditingSpot(spot)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Edit Tourist Spot</DialogTitle>
+                          <DialogDescription>
+                            Update the details for {spot.name}
+                          </DialogDescription>
+                        </DialogHeader>
+                        {editingSpot?.id === spot.id && (
+                          <EditTouristSpotForm
+                            spot={editingSpot}
+                            onSuccess={() => {
+                              setEditingSpot(null);
+                              fetchSpots();
+                            }}
+                            onCancel={() => setEditingSpot(null)}
+                          />
+                        )}
                       </DialogContent>
                     </Dialog>
                     <AlertDialog>
