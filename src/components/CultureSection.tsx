@@ -12,6 +12,7 @@ interface CulturalHighlight {
   icon_name: string;
   image_url: string | null;
   display_order: number;
+  content_images: string[] | null;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -21,7 +22,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Music,
 };
 
-const fallbackHighlights = [
+const fallbackHighlights: CulturalHighlight[] = [
   {
     id: "1",
     icon_name: "Landmark",
@@ -30,6 +31,7 @@ const fallbackHighlights = [
     detailed_content: null,
     image_url: null,
     display_order: 1,
+    content_images: null,
   },
   {
     id: "2",
@@ -39,6 +41,7 @@ const fallbackHighlights = [
     detailed_content: null,
     image_url: null,
     display_order: 2,
+    content_images: null,
   },
   {
     id: "3",
@@ -48,6 +51,7 @@ const fallbackHighlights = [
     detailed_content: null,
     image_url: null,
     display_order: 3,
+    content_images: null,
   },
   {
     id: "4",
@@ -57,6 +61,7 @@ const fallbackHighlights = [
     detailed_content: null,
     image_url: null,
     display_order: 4,
+    content_images: null,
   },
 ];
 
@@ -88,6 +93,10 @@ const CultureSection = () => {
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName] || Landmark;
     return IconComponent;
+  };
+
+  const hasContent = (highlight: CulturalHighlight) => {
+    return highlight.detailed_content || (highlight.content_images && highlight.content_images.length > 0) || highlight.image_url;
   };
 
   return (
@@ -186,7 +195,7 @@ const CultureSection = () => {
 
       {/* Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               {selectedHighlight && (
@@ -203,28 +212,52 @@ const CultureSection = () => {
             </DialogTitle>
           </DialogHeader>
           {selectedHighlight && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Main Image */}
               {selectedHighlight.image_url && (
                 <img
                   src={selectedHighlight.image_url}
                   alt={selectedHighlight.title}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-56 object-cover rounded-lg"
                 />
               )}
+              
+              {/* About Section */}
               <div>
                 <h4 className="font-semibold text-foreground mb-2">About</h4>
                 <p className="text-muted-foreground">{selectedHighlight.description}</p>
               </div>
+              
+              {/* Detailed Content */}
               {selectedHighlight.detailed_content && (
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Learn More</h4>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
+                <div className="bg-secondary/30 rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-3">Learn More</h4>
+                  <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
                     {selectedHighlight.detailed_content}
                   </p>
                 </div>
               )}
-              {!selectedHighlight.detailed_content && !selectedHighlight.image_url && (
-                <p className="text-muted-foreground italic">
+              
+              {/* Content Images Gallery */}
+              {selectedHighlight.content_images && selectedHighlight.content_images.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-foreground mb-3">Gallery</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedHighlight.content_images.map((url, index) => (
+                      <img
+                        key={index}
+                        src={url}
+                        alt={`${selectedHighlight.title} - Image ${index + 1}`}
+                        className="w-full h-40 object-cover rounded-lg hover:scale-105 transition-transform cursor-pointer"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* No Content Message */}
+              {!hasContent(selectedHighlight) && (
+                <p className="text-muted-foreground italic text-center py-4">
                   More detailed content coming soon. Check back later to learn more about {selectedHighlight.title}.
                 </p>
               )}

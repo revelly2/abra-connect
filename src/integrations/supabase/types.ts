@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       cultural_highlights: {
         Row: {
+          content_images: string[] | null
           created_at: string
           description: string
           detailed_content: string | null
@@ -27,6 +28,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          content_images?: string[] | null
           created_at?: string
           description: string
           detailed_content?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          content_images?: string[] | null
           created_at?: string
           description?: string
           detailed_content?: string | null
