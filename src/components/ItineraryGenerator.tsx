@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +17,54 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Sparkles, Loader2, MapPin, Clock, Lightbulb, 
+  Utensils, Mountain, Bus, Hotel, Landmark, TreePine,
+  Info
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Activity {
+  name: string;
+  category: string;
+  description: string;
+  time: string;
+  duration: string;
+  tips?: string;
+  isTouristSpot?: boolean;
+  spotName?: string;
+}
+
+interface Day {
+  dayNumber: number;
+  title: string;
+  activities: Activity[];
+}
+
+interface Itinerary {
+  title: string;
+  days: Day[];
+  travelNotes?: string;
+  travelTips: string[];
+}
+
+interface TouristSpot {
+  id: string;
+  name: string;
+  location: string;
+  description: string;
+  image_url: string | null;
+  categories: string[];
+}
 
 const INTERESTS = [
   { id: "foods", label: "Foods" },
@@ -62,11 +106,171 @@ const BUDGETS = [
   { value: "luxury", label: "Luxury" },
 ];
 
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case "Food & Dining": return <Utensils className="h-5 w-5" />;
+    case "Heritage Site": return <Landmark className="h-5 w-5" />;
+    case "Nature": return <TreePine className="h-5 w-5" />;
+    case "Transportation": return <Bus className="h-5 w-5" />;
+    case "Accommodation": return <Hotel className="h-5 w-5" />;
+    case "Activity": return <Mountain className="h-5 w-5" />;
+    default: return <MapPin className="h-5 w-5" />;
+  }
+};
+
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case "Food & Dining": return "bg-orange-500";
+    case "Heritage Site": return "bg-amber-600";
+    case "Nature": return "bg-green-500";
+    case "Transportation": return "bg-blue-500";
+    case "Accommodation": return "bg-purple-500";
+    case "Activity": return "bg-red-500";
+    default: return "bg-gray-500";
+  }
+};
+
+function ActivityCard({ activity, touristSpots }: { activity: Activity; touristSpots: TouristSpot[] }) {
+  const matchingSpot = touristSpots.find(
+    spot => activity.spotName?.toLowerCase().includes(spot.name.toLowerCase()) ||
+            spot.name.toLowerCase().includes(activity.name.toLowerCase()) ||
+            activity.name.toLowerCase().includes(spot.name.toLowerCase())
+  );
+
+  const content = (
+    <Card className="p-4 bg-card border-border hover:shadow-md transition-shadow">
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-lg bg-muted">
+          {getCategoryIcon(activity.category)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h4 className={`font-semibold text-foreground ${matchingSpot ? 'cursor-pointer hover:text-primary underline decoration-dotted' : ''}`}>
+              {activity.name}
+            </h4>
+            <Badge className={`${getCategoryColor(activity.category)} text-white text-xs`}>
+              {activity.category}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {activity.time}
+            </span>
+            <span>{activity.duration}</span>
+          </div>
+        </div>
+      </div>
+      {activity.tips && (
+        <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+          <div className="flex gap-2">
+            <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">{activity.tips}</p>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+
+  if (matchingSpot) {
+    return (
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          {content}
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80" side="right">
+          <div className="space-y-2">
+            {matchingSpot.image_url && (
+              <img
+                src={matchingSpot.image_url}
+                alt={matchingSpot.name}
+                className="w-full h-32 object-cover rounded-lg"
+              />
+            )}
+            <h4 className="font-semibold text-foreground">{matchingSpot.name}</h4>
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {matchingSpot.location}
+            </p>
+            <p className="text-sm text-muted-foreground">{matchingSpot.description}</p>
+            {matchingSpot.categories?.length > 0 && (
+              <div className="flex gap-1 flex-wrap">
+                {matchingSpot.categories.map(cat => (
+                  <Badge key={cat} variant="secondary" className="text-xs">{cat}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    );
+  }
+
+  return content;
+}
+
+function ItineraryDisplay({ itinerary, touristSpots }: { itinerary: Itinerary; touristSpots: TouristSpot[] }) {
+  return (
+    <div className="space-y-6">
+      {itinerary.days.map((day) => (
+        <div key={day.dayNumber} className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+              {day.dayNumber}
+            </div>
+            <h3 className="text-lg font-bold text-foreground">
+              Day {day.dayNumber}: {day.title}
+            </h3>
+          </div>
+          <div className="space-y-3 ml-4 border-l-2 border-primary/20 pl-6">
+            {day.activities.map((activity, idx) => (
+              <ActivityCard key={idx} activity={activity} touristSpots={touristSpots} />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {itinerary.travelNotes && (
+        <Card className="p-4 bg-muted/50">
+          <div className="flex gap-2">
+            <Info className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold text-foreground mb-1">Travel Notes</h4>
+              <p className="text-sm text-muted-foreground">{itinerary.travelNotes}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {itinerary.travelTips?.length > 0 && (
+        <Card className="p-4 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+          <div className="flex gap-2">
+            <Lightbulb className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">Travel Tips</h4>
+              <ul className="space-y-1">
+                {itinerary.travelTips.map((tip, idx) => (
+                  <li key={idx} className="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                    <span className="text-amber-500">•</span>
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function ItineraryGenerator() {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [itinerary, setItinerary] = useState("");
+  const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [touristSpots, setTouristSpots] = useState<TouristSpot[]>([]);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -80,6 +284,14 @@ export default function ItineraryGenerator() {
     budget: "",
   });
 
+  useEffect(() => {
+    const fetchSpots = async () => {
+      const { data } = await supabase.from('tourist_spots').select('*');
+      if (data) setTouristSpots(data);
+    };
+    fetchSpots();
+  }, []);
+
   const handleInterestChange = (interest: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -91,7 +303,7 @@ export default function ItineraryGenerator() {
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    setItinerary("");
+    setItinerary(null);
     setShowResult(true);
 
     try {
@@ -107,46 +319,16 @@ export default function ItineraryGenerator() {
         }
       );
 
-      if (!response.ok || !response.body) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to generate itinerary");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate itinerary");
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let fullContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              fullContent += content;
-              setItinerary(fullContent);
-            }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
+      if (data.itinerary) {
+        setItinerary(data.itinerary);
+      } else {
+        throw new Error("Invalid response format");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -163,7 +345,7 @@ export default function ItineraryGenerator() {
 
   const resetForm = () => {
     setShowResult(false);
-    setItinerary("");
+    setItinerary(null);
   };
 
   return (
@@ -174,17 +356,16 @@ export default function ItineraryGenerator() {
           Generate AI Itinerary
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
-            {showResult ? "Your Personalized Itinerary" : "Welcome! Help us personalize your experience"}
+            {showResult && itinerary ? itinerary.title : showResult ? "Generating..." : "Welcome! Help us personalize your experience"}
           </DialogTitle>
         </DialogHeader>
 
         {!showResult ? (
           <ScrollArea className="max-h-[70vh] pr-4">
             <div className="space-y-4 py-4">
-              {/* Gender */}
               <div className="space-y-2">
                 <Label>Gender</Label>
                 <Select
@@ -203,7 +384,6 @@ export default function ItineraryGenerator() {
                 </Select>
               </div>
 
-              {/* Age */}
               <div className="space-y-2">
                 <Label>Age</Label>
                 <Input
@@ -214,7 +394,6 @@ export default function ItineraryGenerator() {
                 />
               </div>
 
-              {/* Location */}
               <div className="space-y-2">
                 <Label>Location (Where are you from?)</Label>
                 <Input
@@ -224,7 +403,6 @@ export default function ItineraryGenerator() {
                 />
               </div>
 
-              {/* Interests */}
               <div className="space-y-2">
                 <Label>What interests you about visiting Abra? (Select all that apply)</Label>
                 <div className="space-y-2">
@@ -248,7 +426,6 @@ export default function ItineraryGenerator() {
                 </div>
               </div>
 
-              {/* Duration */}
               <div className="space-y-2">
                 <Label>How long will you stay?</Label>
                 <Select
@@ -260,17 +437,14 @@ export default function ItineraryGenerator() {
                   </SelectTrigger>
                   <SelectContent>
                     {DURATIONS.map((d) => (
-                      <SelectItem key={d.value} value={d.value}>
-                        {d.label}
-                      </SelectItem>
+                      <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Travel Style */}
               <div className="space-y-2">
-                <Label>What's your travel style?</Label>
+                <Label>What is your travel style?</Label>
                 <Select
                   value={formData.travelStyle}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, travelStyle: value }))}
@@ -280,15 +454,12 @@ export default function ItineraryGenerator() {
                   </SelectTrigger>
                   <SelectContent>
                     {TRAVEL_STYLES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Group Type */}
               <div className="space-y-2">
                 <Label>Who are you traveling with?</Label>
                 <Select
@@ -300,17 +471,14 @@ export default function ItineraryGenerator() {
                   </SelectTrigger>
                   <SelectContent>
                     {GROUP_TYPES.map((g) => (
-                      <SelectItem key={g.value} value={g.value}>
-                        {g.label}
-                      </SelectItem>
+                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Budget */}
               <div className="space-y-2">
-                <Label>What's your budget preference?</Label>
+                <Label>What is your budget preference?</Label>
                 <Select
                   value={formData.budget}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, budget: value }))}
@@ -320,9 +488,7 @@ export default function ItineraryGenerator() {
                   </SelectTrigger>
                   <SelectContent>
                     {BUDGETS.map((b) => (
-                      <SelectItem key={b.value} value={b.value}>
-                        {b.label}
-                      </SelectItem>
+                      <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -331,7 +497,7 @@ export default function ItineraryGenerator() {
               <Button
                 onClick={handleSubmit}
                 disabled={isLoading}
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full"
               >
                 {isLoading ? (
                   <>
@@ -347,15 +513,14 @@ export default function ItineraryGenerator() {
         ) : (
           <div className="space-y-4">
             <ScrollArea className="h-[60vh] pr-4">
-              {isLoading && !itinerary ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Creating your personalized itinerary...</p>
                 </div>
-              ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-li:text-muted-foreground prose-hr:border-border">
-                  <ReactMarkdown>{itinerary}</ReactMarkdown>
-                </div>
-              )}
+              ) : itinerary ? (
+                <ItineraryDisplay itinerary={itinerary} touristSpots={touristSpots} />
+              ) : null}
             </ScrollArea>
             {!isLoading && (
               <Button onClick={resetForm} variant="outline" className="w-full">
