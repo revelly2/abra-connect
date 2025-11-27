@@ -20,6 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 
 const INTERESTS = [
   { id: "foods", label: "Foods" },
@@ -351,8 +352,8 @@ export default function ItineraryGenerator() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
-                  {itinerary}
+                <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-li:text-muted-foreground prose-hr:border-border">
+                  <ReactMarkdown>{itinerary}</ReactMarkdown>
                 </div>
               )}
             </ScrollArea>
