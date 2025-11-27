@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import Map from "./pages/Map";
+import SpotLanding from "./pages/SpotLanding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/map" element={<Map />} />
+            <Route path="/spot/:spotId" element={<SpotLanding />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
