@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      cultural_highlights: {
+        Row: {
+          created_at: string
+          description: string
+          detailed_content: string | null
+          display_order: number
+          icon_name: string
+          id: string
+          image_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          detailed_content?: string | null
+          display_order?: number
+          icon_name?: string
+          id?: string
+          image_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          detailed_content?: string | null
+          display_order?: number
+          icon_name?: string
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

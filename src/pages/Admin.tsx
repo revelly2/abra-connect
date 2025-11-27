@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TouristSpotForm from "@/components/admin/TouristSpotForm";
 import TouristSpotsList from "@/components/admin/TouristSpotsList";
+import CulturalHighlightsList from "@/components/admin/CulturalHighlightsList";
 
 const emailSchema = z.string().email("Invalid email address").max(255, "Email must be less than 255 characters");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(100, "Password must be less than 100 characters");
@@ -23,6 +24,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [refreshSpots, setRefreshSpots] = useState(0);
+  const [refreshCulture, setRefreshCulture] = useState(0);
 
   const validateLogin = () => {
     const newErrors: { [key: string]: string } = {};
@@ -113,21 +115,16 @@ const Admin = () => {
               <TouristSpotsList refresh={refreshSpots} />
             </TabsContent>
 
-            <TabsContent value="culture" className="mt-6">
+            <TabsContent value="culture" className="mt-6 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Manage Cultural Content</CardTitle>
+                  <CardTitle>Manage Cultural Highlights</CardTitle>
                   <CardDescription>
-                    Update information about Abra's rich cultural heritage
+                    Update the 4 cultural highlight cards shown on the homepage. Click on a card to view, edit, or add images and detailed content.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Landmark className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Cultural content management coming soon</p>
-                  </div>
-                </CardContent>
               </Card>
+              <CulturalHighlightsList refresh={refreshCulture} />
             </TabsContent>
 
             <TabsContent value="language" className="mt-6">
