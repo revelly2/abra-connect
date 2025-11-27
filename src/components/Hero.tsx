@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { QrCode, MapPin, Sparkles } from "lucide-react";
 import heroImage from "@/assets/abra-mountains.jpg";
+import ItineraryGenerator from "@/components/ItineraryGenerator";
 
 const Hero = () => {
   return (
@@ -40,10 +41,7 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button variant="hero" size="lg" className="group">
-              <QrCode className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              Scan QR Code
-            </Button>
+            <ItineraryGenerator />
             <Button variant="outline" size="lg" className="group">
               <MapPin className="w-5 h-5 group-hover:scale-110 transition-transform" />
               Explore Destinations
