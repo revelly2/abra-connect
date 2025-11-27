@@ -60,7 +60,7 @@ const TouristSpots = () => {
   }
 
   return (
-    <section className="py-24 px-4 bg-gradient-to-b from-background to-card">
+    <section id="destinations" className="py-24 px-4 bg-gradient-to-b from-background to-card">
       <div className="container mx-auto">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
