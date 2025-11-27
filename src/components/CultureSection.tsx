@@ -1,30 +1,95 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Landmark, Users, Palette, Music } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const highlights = [
+interface CulturalHighlight {
+  id: string;
+  title: string;
+  description: string;
+  detailed_content: string | null;
+  icon_name: string;
+  image_url: string | null;
+  display_order: number;
+}
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Landmark,
+  Users,
+  Palette,
+  Music,
+};
+
+const fallbackHighlights = [
   {
-    icon: Landmark,
+    id: "1",
+    icon_name: "Landmark",
     title: "Ancient Traditions",
-    description: "Experience centuries-old indigenous practices passed down through generations in Abra's mountain communities."
+    description: "Experience centuries-old indigenous practices passed down through generations in Abra's mountain communities.",
+    detailed_content: null,
+    image_url: null,
+    display_order: 1,
   },
   {
-    icon: Users,
+    id: "2",
+    icon_name: "Users",
     title: "Itneg Heritage",
-    description: "Discover the rich culture of the Itneg people, one of the Philippines' indigenous groups with unique customs and beliefs."
+    description: "Discover the rich culture of the Itneg people, one of the Philippines' indigenous groups with unique customs and beliefs.",
+    detailed_content: null,
+    image_url: null,
+    display_order: 2,
   },
   {
-    icon: Palette,
+    id: "3",
+    icon_name: "Palette",
     title: "Traditional Crafts",
-    description: "Witness master artisans creating intricate hand-woven textiles, pottery, and traditional bamboo crafts."
+    description: "Witness master artisans creating intricate hand-woven textiles, pottery, and traditional bamboo crafts.",
+    detailed_content: null,
+    image_url: null,
+    display_order: 3,
   },
   {
-    icon: Music,
+    id: "4",
+    icon_name: "Music",
     title: "Folk Music & Dance",
-    description: "Immerse yourself in vibrant performances featuring gangsa music and traditional courtship dances."
-  }
+    description: "Immerse yourself in vibrant performances featuring gangsa music and traditional courtship dances.",
+    detailed_content: null,
+    image_url: null,
+    display_order: 4,
+  },
 ];
 
 const CultureSection = () => {
+  const [highlights, setHighlights] = useState<CulturalHighlight[]>(fallbackHighlights);
+  const [selectedHighlight, setSelectedHighlight] = useState<CulturalHighlight | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchHighlights = async () => {
+      const { data, error } = await supabase
+        .from("cultural_highlights")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        setHighlights(data);
+      }
+    };
+
+    fetchHighlights();
+  }, []);
+
+  const handleCardClick = (highlight: CulturalHighlight) => {
+    setSelectedHighlight(highlight);
+    setDialogOpen(true);
+  };
+
+  const getIcon = (iconName: string) => {
+    const IconComponent = iconMap[iconName] || Landmark;
+    return IconComponent;
+  };
+
   return (
     <section className="py-24 px-4 bg-background">
       <div className="container mx-auto max-w-7xl">
@@ -40,12 +105,13 @@ const CultureSection = () => {
 
         {/* Highlights Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {highlights.map((item, index) => {
-            const Icon = item.icon;
+          {highlights.map((item) => {
+            const Icon = getIcon(item.icon_name);
             return (
               <Card 
-                key={index}
-                className="group bg-card border-border hover:shadow-elegant transition-all duration-300 hover:-translate-y-2 text-center"
+                key={item.id}
+                className="group bg-card border-border hover:shadow-elegant transition-all duration-300 hover:-translate-y-2 text-center cursor-pointer"
+                onClick={() => handleCardClick(item)}
               >
                 <CardContent className="p-8 space-y-4">
                   {/* Icon */}
@@ -117,6 +183,55 @@ const CultureSection = () => {
           </div>
         </Card>
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {selectedHighlight && (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-gradient-accent flex items-center justify-center">
+                    {(() => {
+                      const Icon = getIcon(selectedHighlight.icon_name);
+                      return <Icon className="w-5 h-5 text-accent-foreground" />;
+                    })()}
+                  </div>
+                  {selectedHighlight.title}
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedHighlight && (
+            <div className="space-y-4">
+              {selectedHighlight.image_url && (
+                <img
+                  src={selectedHighlight.image_url}
+                  alt={selectedHighlight.title}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              )}
+              <div>
+                <h4 className="font-semibold text-foreground mb-2">About</h4>
+                <p className="text-muted-foreground">{selectedHighlight.description}</p>
+              </div>
+              {selectedHighlight.detailed_content && (
+                <div>
+                  <h4 className="font-semibold text-foreground mb-2">Learn More</h4>
+                  <p className="text-muted-foreground whitespace-pre-wrap">
+                    {selectedHighlight.detailed_content}
+                  </p>
+                </div>
+              )}
+              {!selectedHighlight.detailed_content && !selectedHighlight.image_url && (
+                <p className="text-muted-foreground italic">
+                  More detailed content coming soon. Check back later to learn more about {selectedHighlight.title}.
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
