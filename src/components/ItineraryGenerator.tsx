@@ -327,6 +327,20 @@ export default function ItineraryGenerator() {
 
       if (data.itinerary) {
         setItinerary(data.itinerary);
+        
+        // Save itinerary log to database
+        await supabase.from('itinerary_logs').insert({
+          gender: formData.gender || null,
+          age: formData.age || null,
+          location: formData.location || null,
+          interests: formData.interests.length > 0 ? formData.interests : null,
+          duration: formData.duration || null,
+          travel_style: formData.travelStyle || null,
+          group_type: formData.groupType || null,
+          budget: formData.budget || null,
+          itinerary_title: data.itinerary.title || null,
+          itinerary_data: data.itinerary,
+        });
       } else {
         throw new Error("Invalid response format");
       }
