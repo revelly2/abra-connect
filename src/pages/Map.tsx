@@ -24,6 +24,7 @@ const Map = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
+  const mapLoaded = useRef(false);
   const [spots, setSpots] = useState<TouristSpot[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<TouristSpot | null>(null);
@@ -116,7 +117,14 @@ const Map = () => {
       .setPopup(new maplibregl.Popup().setHTML('<p class="font-semibold">Your Location</p>'))
       .addTo(map.current);
 
+    // Mark map as loaded when style is ready
+    map.current.on('load', () => {
+      mapLoaded.current = true;
+      console.log('Map style loaded');
+    });
+
     return () => {
+      mapLoaded.current = false;
       map.current?.remove();
     };
   }, [userLocation, loading]);
@@ -184,6 +192,8 @@ const Map = () => {
     setShowingRoute(true);
 
     try {
+      console.log('Fetching route from:', userLocation, 'to:', [selectedSpot.longitude, selectedSpot.latitude]);
+      
       // Fetch route from OSRM (Open Source Routing Machine)
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${selectedSpot.longitude},${selectedSpot.latitude}?overview=full&geometries=geojson`
@@ -198,51 +208,73 @@ const Map = () => {
 
       const route = data.routes[0];
       const coordinates = route.geometry.coordinates;
+      console.log('Route coordinates:', coordinates.length, 'points');
 
-      // Add route as a line on the map
-      map.current.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: coordinates,
+      // Wait for map to be ready if needed
+      const addRouteLayers = () => {
+        if (!map.current) return;
+        
+        // Remove existing if any
+        if (map.current.getSource('route')) {
+          if (map.current.getLayer('route')) map.current.removeLayer('route');
+          if (map.current.getLayer('route-outline')) map.current.removeLayer('route-outline');
+          map.current.removeSource('route');
+        }
+
+        // Add route source
+        map.current.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: coordinates,
+            },
           },
-        },
-      });
+        });
 
-      // Add outline layer first (darker border)
-      map.current.addLayer({
-        id: 'route-outline',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#1d4ed8',
-          'line-width': 8,
-          'line-opacity': 0.6,
-        },
-      });
+        // Add outline layer first (darker border)
+        map.current.addLayer({
+          id: 'route-outline',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#1d4ed8',
+            'line-width': 8,
+            'line-opacity': 0.6,
+          },
+        });
 
-      // Add main route layer
-      map.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#3b82f6',
-          'line-width': 5,
-          'line-opacity': 1,
-        },
-      });
+        // Add main route layer
+        map.current.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 5,
+            'line-opacity': 1,
+          },
+        });
+
+        console.log('Route layers added successfully');
+      };
+
+      // Check if map style is loaded
+      if (map.current.isStyleLoaded()) {
+        addRouteLayers();
+      } else {
+        map.current.once('load', addRouteLayers);
+      }
 
       // Fit map to show entire route
       const bounds = coordinates.reduce(
