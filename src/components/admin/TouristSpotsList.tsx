@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, MapPin, Tag, Eye, Pencil } from "lucide-react";
+import { Trash2, MapPin, Tag, Eye, Pencil, QrCode, Download } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +47,42 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
   const [spots, setSpots] = useState<TouristSpot[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSpot, setEditingSpot] = useState<TouristSpot | null>(null);
+  const [qrSpot, setQrSpot] = useState<TouristSpot | null>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const getSpotUrl = (spotId: string) => {
+    return `${window.location.origin}/spot/${spotId}`;
+  };
+
+  const handleDownloadQR = (spotName: string) => {
+    if (!qrRef.current) return;
+    
+    const svg = qrRef.current.querySelector("svg");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = 300;
+      canvas.height = 300;
+      if (ctx) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, 300, 300);
+        
+        const link = document.createElement("a");
+        link.download = `qr-${spotName.toLowerCase().replace(/\s+/g, "-")}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+  };
 
   const fetchSpots = async () => {
     try {
@@ -147,7 +183,41 @@ const TouristSpotsList = ({ refresh }: TouristSpotsListProps) => {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {/* QR Code Dialog */}
+                    <Dialog open={qrSpot?.id === spot.id} onOpenChange={(open) => !open && setQrSpot(null)}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={() => setQrSpot(spot)} title="Generate QR Code">
+                          <QrCode className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle>QR Code for {spot.name}</DialogTitle>
+                          <DialogDescription>
+                            Scan this code to visit the spot's landing page
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center space-y-4 py-4">
+                          <div ref={qrRef} className="bg-white p-4 rounded-lg">
+                            <QRCodeSVG
+                              value={getSpotUrl(spot.id)}
+                              size={200}
+                              level="H"
+                              includeMargin
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground text-center break-all max-w-full">
+                            {getSpotUrl(spot.id)}
+                          </p>
+                          <Button onClick={() => handleDownloadQR(spot.name)} className="w-full">
+                            <Download className="w-4 h-4 mr-2" />
+                            Download QR Code
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    {/* View Details Dialog */}
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
