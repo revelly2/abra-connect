@@ -42,6 +42,8 @@ const Map = () => {
   const [loading, setLoading] = useState(true);
   const [showingRoute, setShowingRoute] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const markersRef = useRef<L.Marker[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -115,14 +117,21 @@ const Map = () => {
       .addTo(map.current)
       .bindPopup('<p class="font-semibold">Your Location</p>');
 
+    setMapReady(true);
+
     return () => {
       map.current?.remove();
       map.current = null;
+      setMapReady(false);
     };
   }, [userLocation, loading]);
 
   useEffect(() => {
-    if (!map.current || spots.length === 0) return;
+    if (!map.current || !mapReady || spots.length === 0) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
 
     // Add markers for each tourist spot
     spots.forEach((spot) => {
@@ -141,8 +150,10 @@ const Map = () => {
         setShowFullDetails(false);
         map.current?.flyTo([spot.latitude, spot.longitude], 14);
       });
+
+      markersRef.current.push(marker);
     });
-  }, [spots]);
+  }, [spots, mapReady]);
 
   const handleViewDetails = () => {
     setShowFullDetails(!showFullDetails);
