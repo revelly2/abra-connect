@@ -86,6 +86,51 @@ export type Database = {
         }
         Relationships: []
       }
+      itinerary_logs: {
+        Row: {
+          age: string | null
+          budget: string | null
+          created_at: string
+          duration: string | null
+          gender: string | null
+          group_type: string | null
+          id: string
+          interests: string[] | null
+          itinerary_data: Json | null
+          itinerary_title: string | null
+          location: string | null
+          travel_style: string | null
+        }
+        Insert: {
+          age?: string | null
+          budget?: string | null
+          created_at?: string
+          duration?: string | null
+          gender?: string | null
+          group_type?: string | null
+          id?: string
+          interests?: string[] | null
+          itinerary_data?: Json | null
+          itinerary_title?: string | null
+          location?: string | null
+          travel_style?: string | null
+        }
+        Update: {
+          age?: string | null
+          budget?: string | null
+          created_at?: string
+          duration?: string | null
+          gender?: string | null
+          group_type?: string | null
+          id?: string
+          interests?: string[] | null
+          itinerary_data?: Json | null
+          itinerary_title?: string | null
+          location?: string | null
+          travel_style?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

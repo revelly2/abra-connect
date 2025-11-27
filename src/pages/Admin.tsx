@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, LogOut, MapPin, Languages, Landmark } from "lucide-react";
+import { Shield, LogOut, MapPin, Languages, Landmark, BarChart3 } from "lucide-react";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TouristSpotForm from "@/components/admin/TouristSpotForm";
 import TouristSpotsList from "@/components/admin/TouristSpotsList";
 import CulturalHighlightsList from "@/components/admin/CulturalHighlightsList";
 import FeaturedStoryForm from "@/components/admin/FeaturedStoryForm";
+import ItineraryLogsList from "@/components/admin/ItineraryLogsList";
 
 const emailSchema = z.string().email("Invalid email address").max(255, "Email must be less than 255 characters");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(100, "Password must be less than 100 characters");
@@ -96,14 +97,18 @@ const Admin = () => {
 
         <div className="container mx-auto px-4 py-8">
           <Tabs defaultValue="spots" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-md">
+            <TabsList className="grid w-full grid-cols-4 max-w-lg">
               <TabsTrigger value="spots">
                 <MapPin className="w-4 h-4 mr-2" />
-                Tourist Spots
+                Spots
               </TabsTrigger>
               <TabsTrigger value="culture">
                 <Landmark className="w-4 h-4 mr-2" />
                 Culture
+              </TabsTrigger>
+              <TabsTrigger value="analytics">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Analytics
               </TabsTrigger>
               <TabsTrigger value="language">
                 <Languages className="w-4 h-4 mr-2" />
@@ -127,6 +132,20 @@ const Admin = () => {
               </Card>
               <CulturalHighlightsList refresh={refreshCulture} />
               <FeaturedStoryForm />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Itinerary Analytics</CardTitle>
+                  <CardDescription>
+                    Monitor users who generate AI itineraries on your website
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              <div className="mt-4">
+                <ItineraryLogsList />
+              </div>
             </TabsContent>
 
             <TabsContent value="language" className="mt-6">
