@@ -1,12 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import maplibregl from 'maplibre-gl/dist/maplibre-gl.js';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Navigation, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+// Fix default marker icons
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface TouristSpot {
   id: string;
@@ -22,9 +34,8 @@ interface TouristSpot {
 
 const Map = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
-  const markers = useRef<maplibregl.Marker[]>([]);
-  const mapLoaded = useRef(false);
+  const map = useRef<L.Map | null>(null);
+  const routeLayer = useRef<L.Polyline | null>(null);
   const [spots, setSpots] = useState<TouristSpot[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<TouristSpot | null>(null);
@@ -60,11 +71,10 @@ const Map = () => {
   }, [toast]);
 
   useEffect(() => {
-    // Request geolocation permission
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation([position.coords.longitude, position.coords.latitude]);
+          setUserLocation([position.coords.latitude, position.coords.longitude]);
         },
         (error) => {
           console.error('Error getting location:', error);
@@ -72,94 +82,65 @@ const Map = () => {
             title: 'Location Access',
             description: 'Could not access your location. Showing default view.',
           });
-          // Default to Abra, Philippines
-          setUserLocation([120.7913, 17.5947]);
+          // Default to Abra, Philippines (lat, lng for Leaflet)
+          setUserLocation([17.5947, 120.7913]);
         }
       );
     } else {
-      setUserLocation([120.7913, 17.5947]);
+      setUserLocation([17.5947, 120.7913]);
     }
   }, [toast]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current || !userLocation || loading) return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors',
-            maxzoom: 19,
-          },
-        },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm',
-          },
-        ],
-      },
-      center: userLocation,
-      zoom: 10,
+    // Initialize Leaflet map
+    map.current = L.map(mapContainer.current).setView(userLocation, 10);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map.current);
+
+    // Add user location marker (blue)
+    const userIcon = L.divIcon({
+      html: `<div style="background-color: #3b82f6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>`,
+      className: 'user-marker',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
     });
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // Add user location marker
-    new maplibregl.Marker({ color: '#3b82f6' })
-      .setLngLat(userLocation)
-      .setPopup(new maplibregl.Popup().setHTML('<p class="font-semibold">Your Location</p>'))
-      .addTo(map.current);
-
-    // Mark map as loaded when style is ready
-    map.current.on('load', () => {
-      mapLoaded.current = true;
-      console.log('Map style loaded');
-    });
+    L.marker(userLocation, { icon: userIcon })
+      .addTo(map.current)
+      .bindPopup('<p class="font-semibold">Your Location</p>');
 
     return () => {
-      mapLoaded.current = false;
       map.current?.remove();
+      map.current = null;
     };
   }, [userLocation, loading]);
 
   useEffect(() => {
     if (!map.current || spots.length === 0) return;
 
-    // Clear existing markers
-    markers.current.forEach((marker) => marker.remove());
-    markers.current = [];
-
     // Add markers for each tourist spot
     spots.forEach((spot) => {
-      const el = document.createElement('div');
-      el.className = 'marker';
-      el.style.backgroundImage = 'url(https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png)';
-      el.style.width = '32px';
-      el.style.height = '40px';
-      el.style.backgroundSize = '100%';
-      el.style.cursor = 'pointer';
-
-      const marker = new maplibregl.Marker({ element: el, color: '#ef4444' })
-        .setLngLat([spot.longitude, spot.latitude])
-        .addTo(map.current!);
-
-      el.addEventListener('click', () => {
-        setSelectedSpot(spot);
-        setShowFullDetails(false);
-        map.current?.flyTo({
-          center: [spot.longitude, spot.latitude],
-          zoom: 14,
-        });
+      const spotIcon = L.divIcon({
+        html: `<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>`,
+        className: 'spot-marker',
+        iconSize: [24, 24],
+        iconAnchor: [12, 24],
       });
 
-      markers.current.push(marker);
+      const marker = L.marker([spot.latitude, spot.longitude], { icon: spotIcon })
+        .addTo(map.current!);
+
+      marker.on('click', () => {
+        setSelectedSpot(spot);
+        setShowFullDetails(false);
+        map.current?.flyTo([spot.latitude, spot.longitude], 14);
+      });
     });
   }, [spots]);
 
@@ -168,35 +149,23 @@ const Map = () => {
   };
 
   const clearRoute = () => {
-    if (!map.current) return;
-    
-    // Remove route layers
-    if (map.current.getLayer('route-outline')) {
-      map.current.removeLayer('route-outline');
+    if (routeLayer.current && map.current) {
+      map.current.removeLayer(routeLayer.current);
+      routeLayer.current = null;
     }
-    if (map.current.getLayer('route')) {
-      map.current.removeLayer('route');
-    }
-    if (map.current.getSource('route')) {
-      map.current.removeSource('route');
-    }
-    
     setShowingRoute(false);
   };
 
   const handleGetDirections = async () => {
     if (!selectedSpot || !userLocation || !map.current) return;
 
-    // Clear any existing route first
     clearRoute();
     setShowingRoute(true);
 
     try {
-      console.log('Fetching route from:', userLocation, 'to:', [selectedSpot.longitude, selectedSpot.latitude]);
-      
-      // Fetch route from OSRM (Open Source Routing Machine)
+      // Note: OSRM uses lng,lat format
       const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${selectedSpot.longitude},${selectedSpot.latitude}?overview=full&geometries=geojson`
+        `https://router.project-osrm.org/route/v1/driving/${userLocation[1]},${userLocation[0]};${selectedSpot.longitude},${selectedSpot.latitude}?overview=full&geometries=geojson`
       );
       const data = await response.json();
 
@@ -207,85 +176,29 @@ const Map = () => {
       }
 
       const route = data.routes[0];
-      const coordinates = route.geometry.coordinates;
-      console.log('Route coordinates:', coordinates.length, 'points');
-
-      // Wait for map to be ready if needed
-      const addRouteLayers = () => {
-        if (!map.current) return;
-        
-        // Remove existing if any
-        if (map.current.getSource('route')) {
-          if (map.current.getLayer('route')) map.current.removeLayer('route');
-          if (map.current.getLayer('route-outline')) map.current.removeLayer('route-outline');
-          map.current.removeSource('route');
-        }
-
-        // Add route source
-        map.current.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: coordinates,
-            },
-          },
-        });
-
-        // Add outline layer first (darker border)
-        map.current.addLayer({
-          id: 'route-outline',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
-          paint: {
-            'line-color': '#1d4ed8',
-            'line-width': 8,
-            'line-opacity': 0.6,
-          },
-        });
-
-        // Add main route layer
-        map.current.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
-          paint: {
-            'line-color': '#3b82f6',
-            'line-width': 5,
-            'line-opacity': 1,
-          },
-        });
-
-        console.log('Route layers added successfully');
-      };
-
-      // Check if map style is loaded
-      if (map.current.isStyleLoaded()) {
-        addRouteLayers();
-      } else {
-        map.current.once('load', addRouteLayers);
-      }
-
-      // Fit map to show entire route
-      const bounds = coordinates.reduce(
-        (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
-          return bounds.extend(coord as [number, number]);
-        },
-        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+      // Convert GeoJSON coordinates [lng, lat] to Leaflet format [lat, lng]
+      const coordinates: L.LatLngExpression[] = route.geometry.coordinates.map(
+        (coord: [number, number]) => [coord[1], coord[0]] as L.LatLngExpression
       );
 
-      map.current.fitBounds(bounds, {
-        padding: { top: 120, bottom: 200, left: 50, right: 50 },
+      // Add route polyline
+      routeLayer.current = L.polyline(coordinates, {
+        color: '#3b82f6',
+        weight: 6,
+        opacity: 1,
+      }).addTo(map.current);
+
+      // Add outline effect
+      const outlineLayer = L.polyline(coordinates, {
+        color: '#1e40af',
+        weight: 10,
+        opacity: 0.5,
+      }).addTo(map.current);
+      outlineLayer.bringToBack();
+
+      // Fit map to show entire route
+      map.current.fitBounds(routeLayer.current.getBounds(), {
+        padding: [50, 50],
       });
 
       toast({
@@ -296,7 +209,7 @@ const Map = () => {
       console.error('Error fetching route:', error);
       toast({
         title: 'Route unavailable',
-        description: error instanceof Error ? error.message : 'Could not calculate route. The road may not be mapped.',
+        description: error instanceof Error ? error.message : 'Could not calculate route.',
         variant: 'destructive',
       });
       setShowingRoute(false);
@@ -314,23 +227,23 @@ const Map = () => {
   return (
     <div className="relative h-screen w-full">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div className="absolute top-0 left-0 right-0 z-[1000] bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" onClick={() => navigate('/')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
           <h1 className="text-xl font-bold">All Destinations</h1>
-          <div className="w-20" /> {/* Spacer */}
+          <div className="w-20" />
         </div>
       </div>
 
       {/* Map */}
-      <div ref={mapContainer} className="absolute inset-0" />
+      <div ref={mapContainer} className="absolute inset-0" style={{ zIndex: 1 }} />
 
       {/* Selected Spot Card */}
       {selectedSpot && (
-        <Card className={`absolute left-4 right-4 md:left-auto md:right-4 z-10 shadow-lg transition-all duration-300 ${
+        <Card className={`absolute left-4 right-4 md:left-auto md:right-4 z-[1001] shadow-lg transition-all duration-300 ${
           showFullDetails 
             ? 'bottom-4 top-24 md:w-[500px] overflow-y-auto' 
             : 'bottom-4 md:w-96'
