@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TouristSpotForm from "@/components/admin/TouristSpotForm";
 import TouristSpotsList from "@/components/admin/TouristSpotsList";
 import CulturalHighlightsList from "@/components/admin/CulturalHighlightsList";
+import FeaturedStoryForm from "@/components/admin/FeaturedStoryForm";
 
 const emailSchema = z.string().email("Invalid email address").max(255, "Email must be less than 255 characters");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(100, "Password must be less than 100 characters");
@@ -125,6 +126,7 @@ const Admin = () => {
                 </CardHeader>
               </Card>
               <CulturalHighlightsList refresh={refreshCulture} />
+              <FeaturedStoryForm />
             </TabsContent>
 
             <TabsContent value="language" className="mt-6">

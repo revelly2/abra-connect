@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_story: {
+        Row: {
+          created_at: string
+          description_1: string
+          description_2: string
+          heritage_since: string
+          id: string
+          title: string
+          updated_at: string
+          years_of_history: string
+        }
+        Insert: {
+          created_at?: string
+          description_1?: string
+          description_2?: string
+          heritage_since?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          years_of_history?: string
+        }
+        Update: {
+          created_at?: string
+          description_1?: string
+          description_2?: string
+          heritage_since?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          years_of_history?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

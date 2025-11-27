@@ -15,6 +15,15 @@ interface CulturalHighlight {
   content_images: string[] | null;
 }
 
+interface FeaturedStory {
+  id: string;
+  title: string;
+  description_1: string;
+  description_2: string;
+  heritage_since: string;
+  years_of_history: string;
+}
+
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Landmark,
   Users,
@@ -65,10 +74,20 @@ const fallbackHighlights: CulturalHighlight[] = [
   },
 ];
 
+const defaultFeaturedStory: FeaturedStory = {
+  id: "",
+  title: "The Legend of Abra",
+  description_1: "Abra's name comes from the Spanish word for \"opening\" or \"gap,\" referring to the narrow passage through the mountains. Legend tells of ancient tribes who found refuge in these valleys, creating a rich tapestry of culture that thrives to this day.",
+  description_2: "The province is home to the Tingguian people (Itneg), whose ancestral domain spans the rugged mountain terrain. Their traditions, from intricate weaving patterns to sacred rituals, offer a window into pre-colonial Philippine civilization.",
+  heritage_since: "1598",
+  years_of_history: "500+",
+};
+
 const CultureSection = () => {
   const [highlights, setHighlights] = useState<CulturalHighlight[]>(fallbackHighlights);
   const [selectedHighlight, setSelectedHighlight] = useState<CulturalHighlight | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [featuredStory, setFeaturedStory] = useState<FeaturedStory>(defaultFeaturedStory);
 
   useEffect(() => {
     const fetchHighlights = async () => {
@@ -82,7 +101,20 @@ const CultureSection = () => {
       }
     };
 
+    const fetchFeaturedStory = async () => {
+      const { data, error } = await supabase
+        .from("featured_story")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setFeaturedStory(data);
+      }
+    };
+
     fetchHighlights();
+    fetchFeaturedStory();
   }, []);
 
   const handleCardClick = (highlight: CulturalHighlight) => {
@@ -154,24 +186,20 @@ const CultureSection = () => {
               
               <div className="space-y-4">
                 <h3 className="text-3xl md:text-4xl font-bold text-foreground">
-                  The Legend of Abra
+                  {featuredStory.title}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Abra's name comes from the Spanish word for "opening" or "gap," referring to the narrow passage 
-                  through the mountains. Legend tells of ancient tribes who found refuge in these valleys, 
-                  creating a rich tapestry of culture that thrives to this day.
+                  {featuredStory.description_1}
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  The province is home to the Tingguian people (Itneg), whose ancestral domain spans the rugged 
-                  mountain terrain. Their traditions, from intricate weaving patterns to sacred rituals, 
-                  offer a window into pre-colonial Philippine civilization.
+                  {featuredStory.description_2}
                 </p>
               </div>
 
               <div className="pt-4">
                 <div className="inline-block px-4 py-2 rounded-lg bg-secondary/50 border border-primary/10">
                   <div className="text-sm text-muted-foreground">Cultural Heritage Since</div>
-                  <div className="text-2xl font-bold text-primary">1598</div>
+                  <div className="text-2xl font-bold text-primary">{featuredStory.heritage_since}</div>
                 </div>
               </div>
             </CardContent>
@@ -181,7 +209,7 @@ const CultureSection = () => {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center space-y-4 p-8">
                   <Landmark className="w-24 h-24 mx-auto text-primary/40" />
-                  <div className="text-6xl font-bold text-primary/30">500+</div>
+                  <div className="text-6xl font-bold text-primary/30">{featuredStory.years_of_history}</div>
                   <div className="text-xl text-muted-foreground">Years of History</div>
                 </div>
               </div>
