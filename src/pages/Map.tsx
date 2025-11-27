@@ -159,9 +159,34 @@ const Map = () => {
     setShowFullDetails(!showFullDetails);
   };
 
+  const clearRoute = () => {
+    if (!map.current) return;
+    
+    // Remove route layers
+    if (map.current.getLayer('route-outline')) {
+      map.current.removeLayer('route-outline');
+    }
+    if (map.current.getLayer('route')) {
+      map.current.removeLayer('route');
+    }
+    if (map.current.getSource('route')) {
+      map.current.removeSource('route');
+    }
+    
+    // Remove destination marker
+    const existingDestMarker = document.getElementById('destination-marker');
+    if (existingDestMarker) {
+      existingDestMarker.remove();
+    }
+    
+    setShowingRoute(false);
+  };
+
   const handleGetDirections = async () => {
     if (!selectedSpot || !userLocation || !map.current) return;
 
+    // Clear any existing route first
+    clearRoute();
     setShowingRoute(true);
 
     try {
@@ -178,15 +203,7 @@ const Map = () => {
       const route = data.routes[0];
       const coordinates = route.geometry.coordinates;
 
-      // Remove existing route layer and source if they exist
-      if (map.current.getLayer('route')) {
-        map.current.removeLayer('route');
-      }
-      if (map.current.getSource('route')) {
-        map.current.removeSource('route');
-      }
-
-      // Add route as a line on the map
+      // Add route as a line on the map with outline for better visibility
       map.current.addSource('route', {
         type: 'geojson',
         data: {
@@ -199,6 +216,23 @@ const Map = () => {
         },
       });
 
+      // Add outline layer first (darker border)
+      map.current.addLayer({
+        id: 'route-outline',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#1d4ed8',
+          'line-width': 8,
+          'line-opacity': 0.6,
+        },
+      });
+
+      // Add main route layer
       map.current.addLayer({
         id: 'route',
         type: 'line',
@@ -209,10 +243,26 @@ const Map = () => {
         },
         paint: {
           'line-color': '#3b82f6',
-          'line-width': 4,
-          'line-opacity': 0.8,
+          'line-width': 5,
+          'line-opacity': 1,
         },
       });
+
+      // Add prominent destination marker
+      const destMarkerEl = document.createElement('div');
+      destMarkerEl.id = 'destination-marker';
+      destMarkerEl.innerHTML = `
+        <svg width="32" height="44" viewBox="0 0 32 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.16 0 0 7.16 0 16C0 28 16 44 16 44C16 44 32 28 32 16C32 7.16 24.84 0 16 0Z" fill="#ef4444"/>
+          <circle cx="16" cy="16" r="8" fill="white"/>
+          <circle cx="16" cy="16" r="4" fill="#ef4444"/>
+        </svg>
+      `;
+      destMarkerEl.style.cursor = 'pointer';
+
+      new maplibregl.Marker({ element: destMarkerEl, anchor: 'bottom' })
+        .setLngLat([selectedSpot.longitude, selectedSpot.latitude])
+        .addTo(map.current);
 
       // Fit map to show entire route
       const bounds = coordinates.reduce(
@@ -223,12 +273,12 @@ const Map = () => {
       );
 
       map.current.fitBounds(bounds, {
-        padding: { top: 100, bottom: 100, left: 100, right: 100 },
+        padding: { top: 120, bottom: 200, left: 50, right: 50 },
       });
 
       toast({
         title: 'Route displayed',
-        description: `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${Math.round(route.duration / 60)} min`,
+        description: `Distance: ${(route.distance / 1000).toFixed(1)} km • ${Math.round(route.duration / 60)} min drive`,
       });
     } catch (error) {
       console.error('Error fetching route:', error);
@@ -287,6 +337,7 @@ const Map = () => {
                 onClick={() => {
                   setSelectedSpot(null);
                   setShowFullDetails(false);
+                  clearRoute();
                 }}
               >
                 <X className="w-4 h-4" />
@@ -350,14 +401,24 @@ const Map = () => {
               >
                 {showFullDetails ? 'Show Less' : 'View Details'}
               </Button>
-              <Button
-                onClick={handleGetDirections}
-                className="flex-1"
-                disabled={!userLocation || showingRoute}
-              >
-                <Navigation className="w-4 h-4 mr-2" />
-                {showingRoute ? 'Route Shown' : 'Get Directions'}
-              </Button>
+              {showingRoute ? (
+                <Button
+                  onClick={clearRoute}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  Clear Route
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleGetDirections}
+                  className="flex-1"
+                  disabled={!userLocation}
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  Get Directions
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
