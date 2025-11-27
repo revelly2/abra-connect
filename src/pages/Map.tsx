@@ -173,12 +173,6 @@ const Map = () => {
       map.current.removeSource('route');
     }
     
-    // Remove destination marker
-    const existingDestMarker = document.getElementById('destination-marker');
-    if (existingDestMarker) {
-      existingDestMarker.remove();
-    }
-    
     setShowingRoute(false);
   };
 
@@ -196,14 +190,16 @@ const Map = () => {
       );
       const data = await response.json();
 
+      console.log('OSRM Response:', data);
+
       if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-        throw new Error('No route found');
+        throw new Error('No route found - the destination may not be accessible by road');
       }
 
       const route = data.routes[0];
       const coordinates = route.geometry.coordinates;
 
-      // Add route as a line on the map with outline for better visibility
+      // Add route as a line on the map
       map.current.addSource('route', {
         type: 'geojson',
         data: {
@@ -248,22 +244,6 @@ const Map = () => {
         },
       });
 
-      // Add prominent destination marker
-      const destMarkerEl = document.createElement('div');
-      destMarkerEl.id = 'destination-marker';
-      destMarkerEl.innerHTML = `
-        <svg width="32" height="44" viewBox="0 0 32 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.16 0 0 7.16 0 16C0 28 16 44 16 44C16 44 32 28 32 16C32 7.16 24.84 0 16 0Z" fill="#ef4444"/>
-          <circle cx="16" cy="16" r="8" fill="white"/>
-          <circle cx="16" cy="16" r="4" fill="#ef4444"/>
-        </svg>
-      `;
-      destMarkerEl.style.cursor = 'pointer';
-
-      new maplibregl.Marker({ element: destMarkerEl, anchor: 'bottom' })
-        .setLngLat([selectedSpot.longitude, selectedSpot.latitude])
-        .addTo(map.current);
-
       // Fit map to show entire route
       const bounds = coordinates.reduce(
         (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
@@ -283,8 +263,8 @@ const Map = () => {
     } catch (error) {
       console.error('Error fetching route:', error);
       toast({
-        title: 'Error',
-        description: 'Could not calculate route. Please try again.',
+        title: 'Route unavailable',
+        description: error instanceof Error ? error.message : 'Could not calculate route. The road may not be mapped.',
         variant: 'destructive',
       });
       setShowingRoute(false);
