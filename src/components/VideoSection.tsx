@@ -1,7 +1,7 @@
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 // Replace this with your actual YouTube video ID (just the ID, not the full URL)
-const YOUTUBE_VIDEO_ID = "HbFJKWzD9-0";
+const YOUTUBE_VIDEO_ID = "ZBKOJ3Po34o";
 
 const VideoSection = () => {
   const embedUrl = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&loop=1&playlist=${YOUTUBE_VIDEO_ID}&controls=1&rel=0&modestbranding=1`;
