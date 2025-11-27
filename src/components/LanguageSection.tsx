@@ -106,23 +106,6 @@ const LanguageSection = () => {
           ))}
         </div>
 
-        {/* CTA Section */}
-        <Card className="bg-gradient-card border-primary/20 overflow-hidden">
-          <CardContent className="p-8 md:p-12 text-center space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-2xl md:text-3xl font-bold text-foreground">
-                Want to Learn More?
-              </h3>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                Download our complete language guide with audio pronunciations and cultural context
-              </p>
-            </div>
-            <Button variant="hero" size="lg">
-              <Languages className="w-5 h-5" />
-              Download Language Guide
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </section>
   );
