@@ -42,7 +42,12 @@ const Hero = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <ItineraryGenerator />
-            <Button variant="outline" size="lg" className="group">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="group"
+              onClick={() => document.getElementById('destinations')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               <MapPin className="w-5 h-5 group-hover:scale-110 transition-transform" />
               Explore Destinations
             </Button>
