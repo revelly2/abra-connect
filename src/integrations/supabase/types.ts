@@ -14,16 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cultural_highlights: {
+        Row: {
+          content_images: string[] | null
+          created_at: string
+          description: string
+          detailed_content: string | null
+          display_order: number
+          icon_name: string | null
+          id: string
+          image_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_images?: string[] | null
+          created_at?: string
+          description: string
+          detailed_content?: string | null
+          display_order?: number
+          icon_name?: string | null
+          id?: string
+          image_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_images?: string[] | null
+          created_at?: string
+          description?: string
+          detailed_content?: string | null
+          display_order?: number
+          icon_name?: string | null
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      featured_story: {
+        Row: {
+          created_at: string
+          description_1: string
+          description_2: string
+          heritage_since: string
+          id: string
+          title: string
+          updated_at: string
+          years_of_history: string
+        }
+        Insert: {
+          created_at?: string
+          description_1: string
+          description_2: string
+          heritage_since: string
+          id?: string
+          title: string
+          updated_at?: string
+          years_of_history: string
+        }
+        Update: {
+          created_at?: string
+          description_1?: string
+          description_2?: string
+          heritage_since?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          years_of_history?: string
+        }
+        Relationships: []
+      }
+      itinerary_logs: {
+        Row: {
+          age: string | null
+          budget: string | null
+          created_at: string
+          duration: string | null
+          gender: string | null
+          group_type: string | null
+          id: string
+          interests: string[] | null
+          itinerary_data: Json | null
+          itinerary_title: string | null
+          location: string | null
+          travel_style: string | null
+        }
+        Insert: {
+          age?: string | null
+          budget?: string | null
+          created_at?: string
+          duration?: string | null
+          gender?: string | null
+          group_type?: string | null
+          id?: string
+          interests?: string[] | null
+          itinerary_data?: Json | null
+          itinerary_title?: string | null
+          location?: string | null
+          travel_style?: string | null
+        }
+        Update: {
+          age?: string | null
+          budget?: string | null
+          created_at?: string
+          duration?: string | null
+          gender?: string | null
+          group_type?: string | null
+          id?: string
+          interests?: string[] | null
+          itinerary_data?: Json | null
+          itinerary_title?: string | null
+          location?: string | null
+          travel_style?: string | null
+        }
+        Relationships: []
+      }
+      tourist_spots: {
+        Row: {
+          categories: string[] | null
+          created_at: string
+          description: string
+          detailed_content: string | null
+          id: string
+          image_url: string | null
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          categories?: string[] | null
+          created_at?: string
+          description: string
+          detailed_content?: string | null
+          id?: string
+          image_url?: string | null
+          latitude?: number
+          location: string
+          longitude?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          categories?: string[] | null
+          created_at?: string
+          description?: string
+          detailed_content?: string | null
+          id?: string
+          image_url?: string | null
+          latitude?: number
+          location?: string
+          longitude?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +332,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
