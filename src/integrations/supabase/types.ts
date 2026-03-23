@@ -10,229 +10,20 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
-      cultural_highlights: {
-        Row: {
-          content_images: string[] | null
-          created_at: string
-          description: string
-          detailed_content: string | null
-          display_order: number
-          icon_name: string
-          id: string
-          image_url: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          content_images?: string[] | null
-          created_at?: string
-          description: string
-          detailed_content?: string | null
-          display_order?: number
-          icon_name?: string
-          id?: string
-          image_url?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          content_images?: string[] | null
-          created_at?: string
-          description?: string
-          detailed_content?: string | null
-          display_order?: number
-          icon_name?: string
-          id?: string
-          image_url?: string | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      featured_story: {
-        Row: {
-          created_at: string
-          description_1: string
-          description_2: string
-          heritage_since: string
-          id: string
-          title: string
-          updated_at: string
-          years_of_history: string
-        }
-        Insert: {
-          created_at?: string
-          description_1?: string
-          description_2?: string
-          heritage_since?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          years_of_history?: string
-        }
-        Update: {
-          created_at?: string
-          description_1?: string
-          description_2?: string
-          heritage_since?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          years_of_history?: string
-        }
-        Relationships: []
-      }
-      itinerary_logs: {
-        Row: {
-          age: string | null
-          budget: string | null
-          created_at: string
-          duration: string | null
-          gender: string | null
-          group_type: string | null
-          id: string
-          interests: string[] | null
-          itinerary_data: Json | null
-          itinerary_title: string | null
-          location: string | null
-          travel_style: string | null
-        }
-        Insert: {
-          age?: string | null
-          budget?: string | null
-          created_at?: string
-          duration?: string | null
-          gender?: string | null
-          group_type?: string | null
-          id?: string
-          interests?: string[] | null
-          itinerary_data?: Json | null
-          itinerary_title?: string | null
-          location?: string | null
-          travel_style?: string | null
-        }
-        Update: {
-          age?: string | null
-          budget?: string | null
-          created_at?: string
-          duration?: string | null
-          gender?: string | null
-          group_type?: string | null
-          id?: string
-          interests?: string[] | null
-          itinerary_data?: Json | null
-          itinerary_title?: string | null
-          location?: string | null
-          travel_style?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string | null
-          email: string
-          full_name: string | null
-          id: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      tourist_spots: {
-        Row: {
-          categories: string[] | null
-          created_at: string
-          description: string
-          detailed_content: string | null
-          id: string
-          image_url: string | null
-          latitude: number
-          location: string
-          longitude: number
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          categories?: string[] | null
-          created_at?: string
-          description: string
-          detailed_content?: string | null
-          id?: string
-          image_url?: string | null
-          latitude: number
-          location: string
-          longitude: number
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          categories?: string[] | null
-          created_at?: string
-          description?: string
-          detailed_content?: string | null
-          id?: string
-          image_url?: string | null
-          latitude?: number
-          location?: string
-          longitude?: number
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          created_at: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -359,8 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "user"],
-    },
+    Enums: {},
   },
 } as const
