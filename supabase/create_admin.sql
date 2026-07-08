@@ -1,16 +1,30 @@
--- 1. Drop the legacy trigger on auth.users which references the non-existent 'profiles' table.
--- (This legacy trigger causes a 500 Database Error on any sign-up or sign-in).
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- 1. Dynamically drop all custom triggers on the auth.users table
+-- (Legacy or broken triggers here cause 500 errors during sign-in/up).
+DO $$
+DECLARE
+    t RECORD;
+BEGIN
+    FOR t IN 
+        SELECT trigger_name 
+        FROM information_schema.triggers 
+        WHERE event_object_schema = 'auth' 
+          AND event_object_table = 'users'
+    LOOP
+        EXECUTE 'DROP TRIGGER IF EXISTS ' || quote_ident(t.trigger_name) || ' ON auth.users;';
+    END LOOP;
+END $$;
+
+-- 2. Drop the legacy handler function
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
--- 2. Clean up any previous attempts for admin@example.com
+-- 3. Clean up any previous attempts for admin@example.com
 DELETE FROM auth.users WHERE email = 'admin@example.com';
 
 DO $$
 DECLARE
   new_user_id UUID := gen_random_uuid();
 BEGIN
-  -- 3. Create the user in auth.users with confirmed email
+  -- 4. Create the user in auth.users with confirmed email
   INSERT INTO auth.users (
     instance_id,
     id,
@@ -37,10 +51,11 @@ BEGIN
     now()
   );
 
-  -- 4. Associate with admin role in public.user_roles
+  -- 5. Associate with admin role in public.user_roles
   INSERT INTO public.user_roles (user_id, role)
   VALUES (new_user_id, 'admin')
   ON CONFLICT (user_id, role) DO NOTHING;
 
 END $$;
+
 
