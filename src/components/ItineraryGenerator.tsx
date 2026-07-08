@@ -307,26 +307,111 @@ export default function ItineraryGenerator() {
     setShowResult(true);
 
     try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyA-goCF-QLqP-iKG5WwMkd7-UY_tjfjfj8";
+      
+      const systemPrompt = `You are an expert travel planner specializing in Abra, Philippines. Create personalized, structured travel itineraries.
+Always include realistic times, durations, and helpful tips for each activity.
+
+Key tourist spots in Abra to include when relevant:
+- Kaparkan Falls (Mulawin Falls) - terraced waterfall, Heritage Site
+- Tayum Church - historical church built in 1803
+- Tangadan Tunnel - scenic mountain tunnel
+- Bangued Town Plaza - central plaza
+- Abra River - for river activities
+- Victoria Park - nature park
+- Calaba Beach - riverside beach`;
+
+      const userPrompt = `Create a travel itinerary for Abra, Philippines with these preferences:
+- Gender: ${formData.gender || 'Not specified'}
+- Age: ${formData.age || 'Not specified'}
+- Location: ${formData.location || 'Not specified'}
+- Interests: ${formData.interests?.length ? formData.interests.join(', ') : 'General tourism'}
+- Duration: ${formData.duration || '2-3 days'}
+- Travel Style: ${formData.travelStyle || 'Adventure'}
+- Traveling With: ${formData.groupType || 'Solo'}
+- Budget: ${formData.budget || 'Moderate'}
+
+Create a detailed day-by-day itinerary matching these preferences.`;
+
       const response = await fetch(
-        "https://hcfhaqbypdhbcdiztgip.supabase.co/functions/v1/generate-itinerary",
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZmhhcWJ5cGRoYmNkaXp0Z2lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxNjg0MDQsImV4cCI6MjA3OTc0NDQwNH0.4W8p2AnrAN-Gfv2RsuBR5TPgNDNpM9SXSi4k5S0a-mY`,
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: userPrompt }]
+              }
+            ],
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "OBJECT",
+                properties: {
+                  title: { type: "STRING" },
+                  days: {
+                    type: "ARRAY",
+                    items: {
+                      type: "OBJECT",
+                      properties: {
+                        dayNumber: { type: "INTEGER" },
+                        title: { type: "STRING" },
+                        activities: {
+                          type: "ARRAY",
+                          items: {
+                            type: "OBJECT",
+                            properties: {
+                              name: { type: "STRING" },
+                              category: { type: "STRING", enum: ["Activity", "Heritage Site", "Food & Dining", "Nature", "Transportation", "Accommodation"] },
+                              description: { type: "STRING" },
+                              time: { type: "STRING" },
+                              duration: { type: "STRING" },
+                              tips: { type: "STRING" },
+                              isTouristSpot: { type: "BOOLEAN" },
+                              spotName: { type: "STRING" }
+                            },
+                            required: ["name", "category", "description", "time", "duration"]
+                          }
+                        }
+                      },
+                      required: ["dayNumber", "title", "activities"]
+                    }
+                  },
+                  travelNotes: { type: "STRING" },
+                  travelTips: {
+                    type: "ARRAY",
+                    items: { type: "STRING" }
+                  }
+                },
+                required: ["title", "days", "travelTips"]
+              }
+            }
+          })
         }
       );
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate itinerary");
+        throw new Error(result.error?.message || "Failed to generate itinerary");
       }
 
-      if (data.itinerary) {
-        setItinerary(data.itinerary);
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error("No response from AI model");
+      }
+
+      const itineraryData = JSON.parse(text);
+
+      if (itineraryData) {
+        setItinerary(itineraryData);
         
         // Save itinerary log to database
         await supabase.from('itinerary_logs').insert({
@@ -338,8 +423,8 @@ export default function ItineraryGenerator() {
           travel_style: formData.travelStyle || null,
           group_type: formData.groupType || null,
           budget: formData.budget || null,
-          itinerary_title: data.itinerary.title || null,
-          itinerary_data: data.itinerary,
+          itinerary_title: itineraryData.title || null,
+          itinerary_data: itineraryData,
         });
       } else {
         throw new Error("Invalid response format");
